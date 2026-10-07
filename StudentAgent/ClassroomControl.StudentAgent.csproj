@@ -4,6 +4,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <!-- WPF and WinForms both define Application/MessageBox etc.; usings are explicit in this project. -->
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>ClassroomControl.StudentAgent</RootNamespace>
