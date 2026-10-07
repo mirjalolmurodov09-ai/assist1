@@ -1,0 +1,90 @@
+name: Student Agent
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build (Release, warnings are errors)
+        run: dotnet build ClassroomControl.sln -c Release
+
+      - name: Test
+        run: dotnet test StudentAgent.Tests -c Release --no-build --logger "trx;LogFileName=tests.trx"
+
+      - name: Publish (self-contained win-x64)
+        run: dotnet publish StudentAgent/ClassroomControl.StudentAgent.csproj -c Release -r win-x64 --self-contained true -o publish
+
+      - name: Verify publish output
+        shell: pwsh
+        run: |
+          foreach ($f in 'ClassroomControl.StudentAgent.exe','ClassroomControl.StudentAgent.Core.dll','appsettings.json','Resources\Icons\agent.ico') {
+            if (-not (Test-Path "publish\$f")) { throw "Missing $f in publish output" }
+          }
+          Get-ChildItem publish | Select-Object -First 15 Name, Length
+
+      - name: Smoke test (agent starts, creates Device ID, logs, stays alive)
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:LOCALAPPDATA 'ClassroomControl\StudentAgent'
+          if (Test-Path $data) { Remove-Item $data -Recurse -Force }
+          $p = Start-Process -FilePath 'publish\ClassroomControl.StudentAgent.exe' -ArgumentList '--minimized','--disable-autostart' -PassThru
+          Start-Sleep -Seconds 8
+          if ($p.HasExited) { Get-Content "$data\logs\*" -ErrorAction SilentlyContinue; Get-Content "$data\logs\crash.log" -ErrorAction SilentlyContinue; throw "Agent exited early with code $($p.ExitCode)" }
+          $settings = Get-Content "$data\settings.json" -Raw | ConvertFrom-Json
+          if (-not [guid]::TryParse($settings.DeviceId, [ref][guid]::Empty)) { throw 'Device ID missing' }
+          if ($settings.StartWithWindows) { throw '--disable-autostart was not honoured' }
+          $log = Get-Content "$data\logs\agent-*.log" -Raw
+          if ($log -notmatch 'Agent Started') { throw "Log has no 'Agent Started': $log" }
+          Write-Host $log
+          # second launch must not start another agent
+          $second = Start-Process -FilePath 'publish\ClassroomControl.StudentAgent.exe' -ArgumentList '--minimized' -PassThru
+          $second.WaitForExit(15000) | Out-Null
+          if (-not $second.HasExited) { throw 'Second instance did not exit' }
+          Stop-Process -Id $p.Id -Force
+
+      - name: Installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc installer\ClassroomControl-Student-Setup.iss
+          if ($LASTEXITCODE -ne 0) { throw 'ISCC failed' }
+          Get-Item artifacts\ClassroomControl-Student-Setup.exe
+
+      - name: Install / uninstall test
+        shell: pwsh
+        run: |
+          $rule = 'ClassroomControl Student Agent (discovery replies, local subnet)'
+          $dir = "$env:ProgramFiles\ClassroomControl\StudentAgent"
+          $setup = Start-Process artifacts\ClassroomControl-Student-Setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=startup' -Wait -PassThru
+          if ($setup.ExitCode -ne 0) { throw "Setup exit code $($setup.ExitCode)" }
+          if (-not (Test-Path "$dir\ClassroomControl.StudentAgent.exe")) { throw 'Not installed' }
+          if (-not (Test-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Classroom Control\Student Agent.lnk")) { throw 'Start Menu shortcut missing' }
+          $run = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run').'ClassroomControl.StudentAgent'
+          if (-not $run) { throw 'Startup entry missing' }
+          $fw = netsh advfirewall firewall show rule name="$rule" | Out-String
+          Write-Host $fw
+          if ($fw -notmatch 'LocalSubnet' -or $fw -notmatch 'UDP' -or $fw -notmatch 'Inbound') { throw 'Firewall rule missing or too broad' }
+
+          $un = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+          Start-Sleep -Seconds 3
+          if (Test-Path "$dir\ClassroomControl.StudentAgent.exe") { throw 'Application files were not removed' }
+          if ((Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).'ClassroomControl.StudentAgent') { throw 'Startup entry was not removed' }
+          $fw = netsh advfirewall firewall show rule name="$rule" | Out-String
+          if ($fw -notmatch 'No rules match') { throw "Firewall rule was not removed: $fw" }
+          if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'ClassroomControl\StudentAgent\settings.json'))) { throw 'User data should be kept in silent uninstall without /DELETEUSERDATA' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: student-agent-win-x64
+          path: |
+            publish/
+            artifacts/ClassroomControl-Student-Setup.exe

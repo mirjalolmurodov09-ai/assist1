@@ -1,0 +1,48 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <sys:String x:Key="Str.WindowTitle">Classroom Control — Student Agent</sys:String>
+    <sys:String x:Key="Str.StudentAgent">Student Agent</sys:String>
+    <sys:String x:Key="Str.Computer">Computer</sys:String>
+    <sys:String x:Key="Str.ComputerName">Computer Name:</sys:String>
+    <sys:String x:Key="Str.DeviceId">Device ID:</sys:String>
+    <sys:String x:Key="Str.Student">Student:</sys:String>
+    <sys:String x:Key="Str.Network">Network</sys:String>
+    <sys:String x:Key="Str.IP">IP:</sys:String>
+    <sys:String x:Key="Str.Teacher">Teacher:</sys:String>
+    <sys:String x:Key="Str.Connection">Connection:</sys:String>
+    <sys:String x:Key="Str.Classroom">Classroom:</sys:String>
+    <sys:String x:Key="Str.Registration">Registration:</sys:String>
+    <sys:String x:Key="Str.ClassroomCode">Classroom code:</sys:String>
+    <sys:String x:Key="Str.StudentName">Student name:</sys:String>
+    <sys:String x:Key="Str.Connect">Connect</sys:String>
+    <sys:String x:Key="Str.Settings">Settings</sys:String>
+    <sys:String x:Key="Str.Save">Save</sys:String>
+    <sys:String x:Key="Str.Cancel">Cancel</sys:String>
+    <sys:String x:Key="Str.Close">Close</sys:String>
+    <sys:String x:Key="Str.General">General</sys:String>
+    <sys:String x:Key="Str.StartWithWindows">Start with Windows</sys:String>
+    <sys:String x:Key="Str.TeacherIp">Teacher IP (empty = automatic discovery):</sys:String>
+    <sys:String x:Key="Str.TeacherPort">Teacher Port (0 = from discovery):</sys:String>
+    <sys:String x:Key="Str.DiscoveryPort">Discovery Port:</sys:String>
+    <sys:String x:Key="Str.ConnectionTimeout">Connection timeout (seconds):</sys:String>
+    <sys:String x:Key="Str.Security">Security</sys:String>
+    <sys:String x:Key="Str.RegistrationStatus">Registration status:</sys:String>
+    <sys:String x:Key="Str.CertificateStatus">Certificate status:</sys:String>
+    <sys:String x:Key="Str.ResetCertificate">Reset trusted Teacher certificate</sys:String>
+    <sys:String x:Key="Str.About">About</sys:String>
+    <sys:String x:Key="Str.Version">Version:</sys:String>
+    <sys:String x:Key="Str.Developer">Author:</sys:String>
+    <sys:String x:Key="Str.Email">Email:</sys:String>
+    <sys:String x:Key="Str.Telegram">Telegram:</sys:String>
+    <sys:String x:Key="Str.RegistrationTitle">Classroom registration</sys:String>
+    <sys:String x:Key="Str.RegistrationHint">Enter the classroom code given by your teacher (example: CLASS-8F4K-2026).</sys:String>
+    <sys:String x:Key="Str.Open">Open</sys:String>
+    <sys:String x:Key="Str.Exit">Exit</sys:String>
+    <sys:String x:Key="Str.ConnectionStatus">Connection Status</sys:String>
+    <sys:String x:Key="Str.TrayHint">The agent keeps running in the system tray. Use Exit from the tray menu to close it.</sys:String>
+    <sys:String x:Key="Str.ExitPromptTitle">Agent must remain active</sys:String>
+    <sys:String x:Key="Str.ExitPromptText">The teacher requires this agent to stay active. Enter the classroom code to exit.</sys:String>
+    <sys:String x:Key="Str.Ok">OK</sys:String>
+    <sys:String x:Key="Str.UnexpectedError">An unexpected error occurred. The error was logged and the agent keeps running.</sys:String>
+</ResourceDictionary>

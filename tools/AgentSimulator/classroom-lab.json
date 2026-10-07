@@ -1,0 +1,12 @@
+{
+  "Teacher": {
+    "Address": "192.168.1.10",
+    "TcpPort": 39501,
+    "DiscoveryPort": 39500
+  },
+  "Students": {
+    "Count": 16,
+    "FirstIp": "192.168.1.101",
+    "NamePrefix": "PC-"
+  }
+}

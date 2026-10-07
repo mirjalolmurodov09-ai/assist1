@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>ClassroomControl.AgentSimulator</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\StudentAgent.TeacherMock\ClassroomControl.StudentAgent.TeacherMock.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="classroom-lab.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

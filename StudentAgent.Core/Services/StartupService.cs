@@ -56,6 +56,10 @@ public sealed class StartupService : IStartupService
 {
     public const string RunValueName = "ClassroomControl.StudentAgent";
     public const string MinimizedArgument = "--minimized";
+    /// <summary>Used by the uninstaller: removes this user's start-with-Windows entry and exits.</summary>
+    public const string UnregisterArgument = "--unregister-startup";
+    /// <summary>Used by the installer when the "start with Windows" task was not selected.</summary>
+    public const string DisableAutostartArgument = "--disable-autostart";
 
     private readonly IRunKeyStore _store;
     private readonly IExecutablePathProvider _path;

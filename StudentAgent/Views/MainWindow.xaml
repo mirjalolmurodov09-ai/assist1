@@ -1,0 +1,99 @@
+<Window x:Class="ClassroomControl.StudentAgent.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:ClassroomControl.StudentAgent.Models;assembly=ClassroomControl.StudentAgent.Core"
+        Title="{DynamicResource Str.WindowTitle}"
+        Width="460" Height="620" MinWidth="420" MinHeight="560"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="{DynamicResource Str.StudentAgent}" FontSize="24" FontWeight="Bold" />
+
+        <Border Grid.Row="1" CornerRadius="6" Padding="12,8" Margin="0,10,0,0">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#FDECEA" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Indicator}" Value="{x:Static models:StatusIndicator.Connected}">
+                            <Setter Property="Background" Value="#E6F4EA" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Indicator}" Value="{x:Static models:StatusIndicator.Connecting}">
+                            <Setter Property="Background" Value="#FFF4D6" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel>
+                <TextBlock Text="{Binding IndicatorText}" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,2,0,0" Foreground="#444444" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="2">
+            <GroupBox Header="{DynamicResource Str.Computer}">
+                <StackPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.ComputerName}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding ComputerName}" />
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.DeviceId}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding DeviceIdShort}" ToolTip="{Binding DeviceId}" />
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.Student}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding StudentName}" />
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.Registration}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding RegistrationText}" />
+                    </DockPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="{DynamicResource Str.Network}">
+                <StackPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.IP}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding LocalIp}" />
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.Teacher}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding TeacherAddress}" />
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.Connection}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding ConnectionText}" />
+                    </DockPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="{DynamicResource Str.Classroom}">
+                <StackPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.Classroom}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding ClassroomName}" />
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.Teacher}" />
+                        <TextBlock Style="{StaticResource Value}" Text="{Binding TeacherName}" />
+                    </DockPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <TextBlock Text="{Binding LastError}" Foreground="#B00020" TextWrapping="Wrap" Margin="0,10,0,0" />
+        </StackPanel>
+
+        <DockPanel Grid.Row="3" Margin="0,12,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Right" Content="{DynamicResource Str.Settings}" Command="{Binding OpenSettingsCommand}" Margin="8,0,0,0" />
+            <Button DockPanel.Dock="Right" Content="{DynamicResource Str.Connect}" Command="{Binding OpenRegistrationCommand}" />
+            <TextBlock DockPanel.Dock="Left" Text="{DynamicResource Str.TrayHint}" TextWrapping="Wrap" MaxWidth="220" FontSize="11" Foreground="#777777" />
+        </DockPanel>
+    </Grid>
+</Window>
