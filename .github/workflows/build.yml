@@ -81,6 +81,7 @@ jobs:
           $fw = netsh advfirewall firewall show rule name="$rule" | Out-String
           if ($fw -notmatch 'No rules match') { throw "Firewall rule was not removed: $fw" }
           if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'ClassroomControl\StudentAgent\settings.json'))) { throw 'User data should be kept in silent uninstall without /DELETEUSERDATA' }
+          exit 0 # netsh returned 1 ("No rules match") which is the expected result after uninstall
 
       - uses: actions/upload-artifact@v4
         with:
