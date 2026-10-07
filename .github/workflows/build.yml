@@ -72,7 +72,7 @@ jobs:
           if (-not $run) { throw 'Startup entry missing' }
           $fw = netsh advfirewall firewall show rule name="$rule" | Out-String
           Write-Host $fw
-          if ($fw -notmatch 'LocalSubnet' -or $fw -notmatch 'UDP' -or $fw -notmatch 'Inbound') { throw 'Firewall rule missing or too broad' }
+          if ($fw -notmatch 'LocalSubnet' -or $fw -notmatch 'UDP' -or $fw -notmatch 'Direction:\s+In\b') { throw 'Firewall rule missing or too broad' }
 
           $un = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
           Start-Sleep -Seconds 3
