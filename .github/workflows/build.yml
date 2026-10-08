@@ -7,6 +7,8 @@ on:
 jobs:
   windows:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -89,3 +91,19 @@ jobs:
           path: |
             publish/
             artifacts/ClassroomControl-Student-Setup.exe
+
+      - name: Publish binaries to the 'dist' branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/claude/elegant-archimedes-fsc61o'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist-out | Out-Null
+          Compress-Archive -Path publish\* -DestinationPath dist-out\ClassroomControl.StudentAgent-win-x64.zip
+          Copy-Item artifacts\ClassroomControl-Student-Setup.exe dist-out\
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan dist
+          git rm -rf --quiet .
+          Copy-Item dist-out\* . 
+          git add ClassroomControl.StudentAgent-win-x64.zip ClassroomControl-Student-Setup.exe
+          git commit -m "Binaries built from ${{ github.sha }}"
+          git push -f origin dist
