@@ -19,17 +19,17 @@ public sealed class ConnectionTests : IAsyncLifetime
         foreach (var d in Enumerable.Reverse(_disposables)) await d.DisposeAsync();
     }
 
-    private MockTeacherServer Teacher(Action<MockTeacherOptions>? configure = null)
+    private TestTeacher Teacher(Action<TestTeacherOptions>? configure = null)
     {
-        var options = new MockTeacherOptions { ClassroomCode = _code };
+        var options = new TestTeacherOptions { ClassroomCode = _code };
         configure?.Invoke(options);
-        var server = new MockTeacherServer(options);
+        var server = new TestTeacher(options);
         server.Start();
         _disposables.Add(server);
         return server;
     }
 
-    private HeadlessAgent Agent(MockTeacherServer teacher, bool manual, string? code = null, Action<HeadlessAgentOptions>? configure = null)
+    private HeadlessAgent Agent(TestTeacher teacher, bool manual, string? code = null, Action<HeadlessAgentOptions>? configure = null)
     {
         var options = new HeadlessAgentOptions
         {
@@ -81,7 +81,7 @@ public sealed class ConnectionTests : IAsyncLifetime
         Assert.True(await teacher.WaitForAsync(() => agent.Status.Current.LastErrorCode == ErrorCodes.InvalidClassroomCode, Wait));
         Assert.Equal("Classroom code noto‘g‘ri.", agent.Status.Current.LastErrorMessage);
         Assert.NotEqual(ConnectionState.Connected, agent.Status.Current.State);
-        Assert.Null(teacher.GetDevice(agent.DeviceId)?.SessionId);
+        Assert.Null(teacher.GetDevice(agent.DeviceId));
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class ConnectionTests : IAsyncLifetime
         Assert.True(await teacher.WaitForAsync(() => agent.Status.Current.Indicator == StatusIndicator.Offline, Wait));
         Assert.False(string.IsNullOrEmpty(agent.Status.Current.LastErrorCode));
 
-        var restarted = new MockTeacherServer(new MockTeacherOptions { ClassroomCode = _code, TcpPort = port, DiscoveryPort = teacher.DiscoveryPort, Certificate = teacher.Certificate });
+        var restarted = new TestTeacher(new TestTeacherOptions { ClassroomCode = _code, TcpPort = port, DiscoveryPort = teacher.DiscoveryPort, DataDirectory = teacher.DataDirectory });
         restarted.Start();
         _disposables.Add(restarted);
         Assert.True(await agent.WaitForStateAsync(ConnectionState.Connected, Wait), agent.Status.Current.StatusText);
@@ -153,7 +153,7 @@ public sealed class ConnectionTests : IAsyncLifetime
 
         var port = teacher.TcpPort;
         await teacher.StopAsync();
-        var impostor = new MockTeacherServer(new MockTeacherOptions { ClassroomCode = _code, TcpPort = port, DiscoveryPort = teacher.DiscoveryPort });
+        var impostor = new TestTeacher(new TestTeacherOptions { ClassroomCode = _code, TcpPort = port, DiscoveryPort = teacher.DiscoveryPort });
         impostor.Start();
         _disposables.Add(impostor);
 

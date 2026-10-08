@@ -16,11 +16,17 @@ public static class CommandNames
     public const string StopScreenStream = "StopScreenStream";
     public const string StartRemoteControl = "StartRemoteControl";
     public const string StopRemoteControl = "StopRemoteControl";
+    public const string SendMessage = "SendMessage";
+    public const string StartTeacherScreen = "StartTeacherScreen";
+    public const string StopTeacherScreen = "StopTeacherScreen";
 
-    /// <summary>Commands reserved for later stages. They are registered but not implemented.</summary>
-    public static readonly string[] Reserved =
+    /// <summary>Every command a Teacher may send to a Student Agent in protocol 1.0.</summary>
+    public static readonly string[] All =
     [
-        Lock, Unlock, Screenshot, StartApplication, StopApplication, Restart, Shutdown,
-        StartScreenStream, StopScreenStream, StartRemoteControl, StopRemoteControl,
+        Ping, GetStatus, GetDeviceInfo, Lock, Unlock, Screenshot, StartApplication, StopApplication, Restart, Shutdown,
+        StartScreenStream, StopScreenStream, StartRemoteControl, StopRemoteControl, SendMessage, StartTeacherScreen, StopTeacherScreen,
     ];
+
+    /// <summary>Commands without a dedicated handler yet.</summary>
+    public static readonly string[] Reserved = [.. All.Where(n => n is not (Ping or GetStatus or GetDeviceInfo))];
 }

@@ -9,5 +9,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\StudentAgent.Core\ClassroomControl.StudentAgent.Core.csproj" />
+    <ProjectReference Include="..\ClassroomServer\ClassroomControl.ClassroomServer.csproj" />
   </ItemGroup>
 </Project>

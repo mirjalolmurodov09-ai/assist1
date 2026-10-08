@@ -10,7 +10,7 @@ public static class ProtocolConstants
     public const int DefaultDiscoveryPort = 39500;
     public const int DefaultTeacherPort = 39501;
     public const int NonceBytes = 16;
-    public const int MaxFrameBytes = 256 * 1024;
+    public const int MaxFrameBytes = 4 * 1024 * 1024;
     public const int MaxDatagramBytes = 2048;
 
     public const string DeviceTeacher = "TEACHER";
@@ -34,6 +34,11 @@ public static class MessageTypes
     public const string CommandResponse = "COMMAND_RESPONSE";
     public const string RegistrationUpdate = "REGISTRATION_UPDATE";
     public const string Disconnect = "DISCONNECT";
+    public const string ScreenFrame = "SCREEN_FRAME";
+    public const string TeacherScreenFrame = "TEACHER_SCREEN_FRAME";
+    public const string MouseEvent = "MOUSE_EVENT";
+    public const string KeyboardEvent = "KEYBOARD_EVENT";
+    public const string StatusUpdate = "STATUS_UPDATE";
 }
 
 public static class ErrorCodes
@@ -53,6 +58,9 @@ public static class ErrorCodes
     public const string CommandDisabled = "COMMAND_DISABLED";
     public const string CommandFailed = "COMMAND_FAILED";
     public const string Rejected = "REGISTRATION_REJECTED";
+    public const string InvalidParameters = "INVALID_PARAMETERS";
+    public const string NotActive = "NOT_ACTIVE";
+    public const string PlatformUnavailable = "PLATFORM_UNAVAILABLE";
     public const string UntrustedCertificate = "UNTRUSTED_CERTIFICATE";
     public const string UntrustedNetwork = "UNTRUSTED_NETWORK";
 }

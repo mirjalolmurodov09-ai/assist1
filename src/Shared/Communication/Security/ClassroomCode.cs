@@ -12,10 +12,21 @@ public static partial class ClassroomCode
     private const int Pbkdf2Iterations = 100_000;
     private static readonly byte[] Salt = Encoding.UTF8.GetBytes("ClassroomControl/v1/classroom-key");
 
-    [GeneratedRegex("^CLASS-[A-Z0-9]{4}-[0-9]{4}$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^CLASS-[A-Z0-9]{4,8}-[0-9]{4}$", RegexOptions.CultureInvariant)]
     private static partial Regex FormatRegex();
 
     public static string Normalize(string? code) => (code ?? string.Empty).Trim().ToUpperInvariant();
+
+    private const string Alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private const int GeneratedChars = 8;
+
+    /// <summary>Creates a new random code such as <c>CLASS-7KQ2M9XD-2026</c> (40 random bits + the current year).</summary>
+    public static string Generate(DateTimeOffset now)
+    {
+        var chars = new char[GeneratedChars];
+        for (var i = 0; i < chars.Length; i++) chars[i] = Alphabet[RandomNumberGenerator.GetInt32(Alphabet.Length)];
+        return $"CLASS-{new string(chars)}-{now.Year:0000}";
+    }
 
     public static bool IsValidFormat(string? code) => FormatRegex().IsMatch(Normalize(code));
 

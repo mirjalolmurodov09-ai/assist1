@@ -26,7 +26,7 @@ public sealed record AuthResponseMessage(
     string DeviceId, string ClientProof, string ComputerName, string StudentName, string LocalIp,
     string OperatingSystem, string AgentVersion);
 
-public sealed record AgentPolicy(bool RequireAgentActive);
+public sealed record AgentPolicy(bool RequireAgentActive, int AutoUnlockSeconds = 0);
 
 public sealed record AuthResultMessage(
     bool Success, string? ErrorCode, string? Message, string? SessionId,

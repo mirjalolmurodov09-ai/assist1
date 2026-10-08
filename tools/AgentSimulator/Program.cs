@@ -30,10 +30,10 @@ Console.CancelKeyPress += (_, e) =>
     stop.Cancel();
 };
 
-MockTeacherServer? teacher = null;
+TestTeacher? teacher = null;
 if (options.Mock)
 {
-    teacher = new MockTeacherServer(new MockTeacherOptions { ClassroomCode = options.Code, ClassroomName = "8-A", TeacherName = "Teacher PC (mock)" });
+    teacher = new TestTeacher(new TestTeacherOptions { ClassroomCode = options.Code });
     teacher.Start();
     Console.WriteLine($"Mock Teacher listening: TCP {teacher.TcpPort}, UDP discovery {teacher.DiscoveryPort}");
 }

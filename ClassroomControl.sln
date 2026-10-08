@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassroomControl.AgentSimul
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassroomControl.StudentAgent", "src\StudentAgent\ClassroomControl.StudentAgent.csproj", "{B1C2D3E4-0A0B-4C1D-8E2F-3A4B5C6D7E81}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassroomControl.ClassroomServer", "src\ClassroomServer\ClassroomControl.ClassroomServer.csproj", "{113EDFC9-F027-4936-9593-4D0149857AE9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{BE3E83F1-ABAD-45EA-969F-03AB9E80555C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BE3E83F1-ABAD-45EA-969F-03AB9E80555C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BE3E83F1-ABAD-45EA-969F-03AB9E80555C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{113EDFC9-F027-4936-9593-4D0149857AE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{113EDFC9-F027-4936-9593-4D0149857AE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{113EDFC9-F027-4936-9593-4D0149857AE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{113EDFC9-F027-4936-9593-4D0149857AE9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{7C8B514C-AF01-4339-9C3B-FD9D940C439D} = {F5362D01-0D0A-4B69-9967-DB9F14E648FF}
@@ -68,5 +74,6 @@ Global
 		{B1C2D3E4-0A0B-4C1D-8E2F-3A4B5C6D7E81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1C2D3E4-0A0B-4C1D-8E2F-3A4B5C6D7E81}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1C2D3E4-0A0B-4C1D-8E2F-3A4B5C6D7E81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{113EDFC9-F027-4936-9593-4D0149857AE9} = {F5362D01-0D0A-4B69-9967-DB9F14E648FF}
 	EndGlobalSection
 EndGlobal

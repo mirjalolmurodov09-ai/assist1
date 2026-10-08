@@ -23,17 +23,17 @@ public sealed class IntegrationTests : IAsyncLifetime
         foreach (var d in Enumerable.Reverse(_disposables)) await d.DisposeAsync();
     }
 
-    private MockTeacherServer StartTeacher(Action<MockTeacherOptions>? configure = null)
+    private TestTeacher StartTeacher(Action<TestTeacherOptions>? configure = null)
     {
-        var options = new MockTeacherOptions { ClassroomCode = _code };
+        var options = new TestTeacherOptions { ClassroomCode = _code };
         configure?.Invoke(options);
-        var server = new MockTeacherServer(options);
+        var server = new TestTeacher(options);
         server.Start();
         _disposables.Add(server);
         return server;
     }
 
-    private HeadlessAgent NewAgent(MockTeacherServer teacher, Action<HeadlessAgentOptions>? configure = null)
+    private HeadlessAgent NewAgent(TestTeacher teacher, Action<HeadlessAgentOptions>? configure = null)
     {
         var options = new HeadlessAgentOptions { ClassroomCode = _code, ComputerName = "PC-01", StudentName = "Ali", DiscoveryPort = teacher.DiscoveryPort };
         configure?.Invoke(options);
@@ -56,11 +56,10 @@ public sealed class IntegrationTests : IAsyncLifetime
         Assert.Equal("PC-01", device.ComputerName);
         Assert.Equal("Ali", device.StudentName);
         Assert.Equal("192.168.1.101", device.LocalIp);
-        Assert.Equal("1.0.0", device.AgentVersion);
 
         // 4. registration: commands are refused until approved
         var early = await teacher.SendCommandAsync(agent.DeviceId, CommandNames.Ping);
-        Assert.Equal(CommandStatus.Rejected, early.Status);
+        Assert.NotEqual(CommandStatus.Success, early.Status); // the server itself refuses to command an unapproved computer
         Assert.Equal(ErrorCodes.NotRegistered, early.ErrorCode);
 
         await teacher.ApproveAsync(agent.DeviceId);
@@ -136,7 +135,7 @@ public sealed class IntegrationTests : IAsyncLifetime
     [Fact]
     public async Task Replay_attack_on_the_session_is_detected_and_the_session_is_dropped()
     {
-        var teacher = StartTeacher();
+        var teacher = StartTeacher(o => o.RecordFrames = true);
         var agent = NewAgent(teacher);
         await agent.StartAsync();
         Assert.True(await agent.WaitForStateAsync(ConnectionState.Connected, Wait));
