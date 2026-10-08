@@ -5,7 +5,7 @@
     <RootNamespace>ClassroomControl.AgentSimulator</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\StudentAgent.TeacherMock\ClassroomControl.StudentAgent.TeacherMock.csproj" />
+    <ProjectReference Include="..\..\src\TestKit\ClassroomControl.TestKit.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="classroom-lab.json" CopyToOutputDirectory="PreserveNewest" />

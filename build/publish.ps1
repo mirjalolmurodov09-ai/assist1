@@ -8,7 +8,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $root 'publish'
 if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 
-dotnet publish (Join-Path $root 'StudentAgent\ClassroomControl.StudentAgent.csproj') `
+dotnet publish (Join-Path $root 'src\StudentAgent\ClassroomControl.StudentAgent.csproj') `
     -c Release -r win-x64 --self-contained true -o $out
 if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
 

@@ -3,7 +3,7 @@ using System.Net;
 using System.Text.Json;
 using ClassroomControl.StudentAgent.Commands;
 using ClassroomControl.StudentAgent.Models;
-using ClassroomControl.StudentAgent.TeacherMock;
+using ClassroomControl.TestKit;
 
 // Simulates a classroom of Student Agents (default 16: PC-01 .. PC-16, 192.168.1.101 .. 192.168.1.116).
 //
@@ -114,7 +114,7 @@ internal sealed record Options(bool Mock, string Code, int Count, string FirstIp
         var students = doc.RootElement.GetProperty("Students");
 
         var code = map.GetValueOrDefault("code") ?? Environment.GetEnvironmentVariable("CLASSROOM_CODE") ?? string.Empty;
-        if (!ClassroomControl.StudentAgent.Communication.Security.ClassroomCode.IsValidFormat(code)) return null;
+        if (!ClassroomControl.Shared.Communication.Security.ClassroomCode.IsValidFormat(code)) return null;
 
         return new Options(
             args[0] == "mock",
