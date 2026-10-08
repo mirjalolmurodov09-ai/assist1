@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>ClassroomControl.TeacherApp</RootNamespace>
+    <AssemblyName>ClassroomControl.Teacher</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\Icons\teacher.ico</ApplicationIcon>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Description>Classroom Control - Teacher</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TeacherApp.Core\ClassroomControl.TeacherApp.Core.csproj" />
+    <ProjectReference Include="..\ClassroomServer\ClassroomControl.ClassroomServer.csproj" />
+    <ProjectReference Include="..\Shared\ClassroomControl.Shared.csproj" />
+    <ProjectReference Include="..\Infrastructure\ClassroomControl.Infrastructure.csproj" />
+    <ProjectReference Include="..\Platform\ClassroomControl.Platform.csproj" />
+    <ProjectReference Include="..\Wpf\ClassroomControl.Wpf.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\Icons\*.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

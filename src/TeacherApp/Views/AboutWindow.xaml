@@ -1,0 +1,19 @@
+<Window x:Class="ClassroomControl.TeacherApp.Views.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:ClassroomControl.TeacherApp"
+        Title="{l:Loc About.Title}" Width="480" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="24">
+        <TextBlock Text="{l:Loc App.Name}" FontSize="22" FontWeight="Bold" />
+        <TextBlock Margin="0,12,0,0">
+            <Run Text="{l:Loc About.Version}" /> <Run Text="{Binding Version, Mode=OneWay}" FontWeight="SemiBold" />
+        </TextBlock>
+        <TextBlock Text="{l:Loc About.Author}" Style="{StaticResource Muted}" Margin="0,14,0,0" />
+        <TextBlock Text="{Binding Author}" FontWeight="SemiBold" />
+        <TextBlock Text="Email" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+        <TextBox Text="{Binding Email, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontWeight="SemiBold" Padding="0" />
+        <TextBlock Text="Telegram" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+        <TextBox Text="{Binding Telegram, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontWeight="SemiBold" Padding="0" />
+        <Button Content="{l:Loc Common.Close}" IsDefault="True" IsCancel="True" HorizontalAlignment="Right" Margin="0,18,0,0" MinWidth="90" />
+    </StackPanel>
+</Window>

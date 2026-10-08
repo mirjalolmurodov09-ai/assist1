@@ -13,5 +13,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\StudentAgent.Core\ClassroomControl.StudentAgent.Core.csproj" />
     <ProjectReference Include="..\..\src\TestKit\ClassroomControl.TestKit.csproj" />
+    <ProjectReference Include="..\..\src\TeacherApp.Core\ClassroomControl.TeacherApp.Core.csproj" />
   </ItemGroup>
 </Project>

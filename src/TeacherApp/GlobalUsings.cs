@@ -1,0 +1,14 @@
+global using ClassroomControl.Shared.Models;
+global using ClassroomControl.Shared.Communication.Messages;
+global using ClassroomControl.Shared.Communication.Protocol;
+global using ClassroomControl.Shared.Mvvm;
+global using ClassroomControl.Shared.Screen;
+global using ClassroomControl.Infrastructure;
+global using ClassroomControl.ClassroomServer;
+global using ClassroomControl.ClassroomServer.Data;
+global using ClassroomControl.TeacherApp.Localization;
+global using ClassroomControl.TeacherApp.Services;
+global using ClassroomControl.TeacherApp.ViewModels;
+global using Server = ClassroomControl.ClassroomServer.ClassroomServer;
+global using ClassroomControl.ClassroomServer.Security;
+global using System.Threading.Tasks;

@@ -1,0 +1,19 @@
+<Window x:Class="ClassroomControl.TeacherApp.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:ClassroomControl.TeacherApp"
+        Title="{l:Loc Login.Title}" Width="420" SizeToContent="Height" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+    <StackPanel Margin="26">
+        <TextBlock Text="{l:Loc App.Name}" FontSize="20" FontWeight="Bold" />
+        <TextBlock Text="{l:Loc Login.Subtitle}" Style="{StaticResource Muted}" Margin="0,4,0,18" />
+        <TextBlock Text="{l:Loc Login.User}" />
+        <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" />
+        <TextBlock Text="{l:Loc Login.Password}" />
+        <PasswordBox x:Name="Password" Margin="0,4,0,10" />
+        <TextBlock Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" MinHeight="18" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="{l:Loc Login.Button}" IsDefault="True" Click="Login_Click" Style="{StaticResource PrimaryButton}" MinWidth="100" Margin="0,0,8,0" />
+            <Button Content="{l:Loc Login.Exit}" IsCancel="True" MinWidth="90" Margin="0" />
+        </StackPanel>
+    </StackPanel>
+</Window>

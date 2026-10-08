@@ -49,3 +49,48 @@ public sealed class RelayCommand : ICommand
     public void Execute(object? parameter) => _execute(parameter);
     public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }
+
+/// <summary>Command that runs an async action, ignores clicks while it runs, and reports failures instead of crashing the app.</summary>
+public sealed class AsyncRelayCommand : ICommand
+{
+    private readonly Func<Task> _execute;
+    private readonly Func<bool>? _canExecute;
+    private readonly Action<Exception>? _onError;
+    private int _running;
+
+    public AsyncRelayCommand(Func<Task> execute, Func<bool>? canExecute = null, Action<Exception>? onError = null)
+    {
+        _execute = execute;
+        _canExecute = canExecute;
+        _onError = onError;
+    }
+
+    public event EventHandler? CanExecuteChanged;
+    public bool IsRunning => Volatile.Read(ref _running) == 1;
+    public bool CanExecute(object? parameter) => !IsRunning && (_canExecute?.Invoke() ?? true);
+    public async void Execute(object? parameter) => await ExecuteAsync().ConfigureAwait(true);
+    public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+
+    public async Task ExecuteAsync()
+    {
+        if (Interlocked.Exchange(ref _running, 1) == 1) return;
+        RaiseCanExecuteChanged();
+        try
+        {
+            await _execute().ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelled by the user or by shutdown.
+        }
+        catch (Exception ex)
+        {
+            _onError?.Invoke(ex);
+        }
+        finally
+        {
+            Volatile.Write(ref _running, 0);
+            RaiseCanExecuteChanged();
+        }
+    }
+}
