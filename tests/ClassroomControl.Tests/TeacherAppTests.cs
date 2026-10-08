@@ -530,7 +530,8 @@ public sealed class TeacherAppTests : IAsyncLifetime
         Assert.True(await _teacher.WaitForAsync(() => add.Pending.Count == 1, Wait));
         Assert.Equal(_code, add.ClassroomCode);
         Assert.False(string.IsNullOrWhiteSpace(add.Instructions));
-        add.Selected = add.Pending[0];
+        // The list is rebuilt on refresh (on a background thread with the immediate test dispatcher): pick the item tolerantly.
+        Assert.True(await _teacher.WaitForAsync(() => add.Pending.FirstOrDefault() is { } first && (add.Selected = first) is not null, Wait));
         await ((AsyncRelayCommand)add.ApproveCommand).ExecuteAsync();
         Assert.True(await _teacher.WaitForAsync(() => add.Pending.Count == 0, Wait));
     }
