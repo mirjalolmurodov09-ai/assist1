@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
-namespace ClassroomControl.StudentAgent.ViewModels;
+namespace ClassroomControl.Shared.Mvvm;
 
 public abstract class ObservableObject : INotifyPropertyChanged
 {

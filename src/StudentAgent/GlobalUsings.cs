@@ -6,3 +6,5 @@ global using ClassroomControl.Shared.Communication.Tcp;
 global using ClassroomControl.Infrastructure;
 global using ClassroomControl.Infrastructure.Security;
 global using ClassroomControl.Infrastructure.Logging;
+global using ClassroomControl.Shared.Mvvm;
+global using ClassroomControl.Shared.Screen;

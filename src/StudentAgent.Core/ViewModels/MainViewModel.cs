@@ -1,3 +1,4 @@
+using ClassroomControl.StudentAgent.Features;
 using ClassroomControl.StudentAgent.Models;
 using ClassroomControl.StudentAgent.Resources.Strings;
 using ClassroomControl.StudentAgent.Services;
@@ -20,10 +21,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly IDeviceInfoService _device;
     private readonly ISettingsService _settings;
     private readonly IUiDispatcher _ui;
+    private readonly FeatureState _features;
     private AgentStatusSnapshot _snapshot;
 
-    public MainViewModel(IAgentStatusStore store, IDeviceInfoService device, ISettingsService settings, IUiDispatcher ui, IWindowService windows)
+    public MainViewModel(IAgentStatusStore store, IDeviceInfoService device, ISettingsService settings, IUiDispatcher ui, IWindowService windows, FeatureState features)
     {
+        _features = features;
         _store = store;
         _device = device;
         _settings = settings;
@@ -33,7 +36,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OpenRegistrationCommand = new RelayCommand(() => windows.ShowRegistration());
         _store.Changed += OnStatusChanged;
         _settings.Changed += OnSettingsChanged;
+        _features.Changed += OnFeaturesChanged;
     }
+
+    /// <summary>What the teacher is doing to this computer right now (never hidden from the student).</summary>
+    public string ActivityText => string.Join(Environment.NewLine, new[]
+    {
+        _features.Locked ? UiStrings.ActivityLocked : null,
+        _features.Streaming ? UiStrings.ActivityWatched : null,
+        _features.RemoteControl ? UiStrings.ActivityRemote : null,
+        _features.TeacherScreen ? UiStrings.ActivityTeacherScreen : null,
+    }.Where(line => line is not null));
+
+    private void OnFeaturesChanged(object? sender, EventArgs e) => _ui.Post(() => Raise(nameof(ActivityText)));
 
     public ICommand OpenSettingsCommand { get; }
     public ICommand OpenRegistrationCommand { get; }
@@ -90,7 +105,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             nameof(IndicatorText), nameof(Indicator), nameof(StatusText), nameof(ConnectionText), nameof(RegistrationText),
             nameof(ComputerName), nameof(StudentName), nameof(LocalIp), nameof(TeacherAddress), nameof(ClassroomName),
-            nameof(TeacherName), nameof(LastError), nameof(RequireAgentActive), nameof(DeviceId), nameof(DeviceIdShort),
+            nameof(TeacherName), nameof(LastError), nameof(RequireAgentActive), nameof(DeviceId), nameof(DeviceIdShort), nameof(ActivityText),
         }) Raise(name);
     }
 
@@ -98,5 +113,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         _store.Changed -= OnStatusChanged;
         _settings.Changed -= OnSettingsChanged;
+        _features.Changed -= OnFeaturesChanged;
     }
 }

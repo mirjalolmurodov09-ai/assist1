@@ -1,4 +1,4 @@
-namespace ClassroomControl.StudentAgent.Features;
+namespace ClassroomControl.Shared.Screen;
 
 public readonly record struct DiffResult(bool Changed, bool KeyFrame, PixelRegion Region);
 

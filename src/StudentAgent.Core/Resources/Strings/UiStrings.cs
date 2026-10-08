@@ -26,5 +26,10 @@ public static class UiStrings
     public const string NetworkChanged = "Tarmoq o‘zgardi. Teacher qayta qidirilmoqda...";
     public const string UnexpectedError = "Kutilmagan xatolik yuz berdi. Agent qayta ishga tushirilmoqda.";
 
+    public const string ActivityLocked = "🔒 Ekran o‘qituvchi tomonidan bloklangan.";
+    public const string ActivityWatched = "👁 O‘qituvchi ekraningizni kuzatmoqda.";
+    public const string ActivityRemote = "🖱 O‘qituvchi kompyuteringizni boshqarmoqda.";
+    public const string ActivityTeacherScreen = "📺 O‘qituvchi ekrani ko‘rsatilmoqda.";
+
     public static string ReconnectingIn(TimeSpan delay) => $"Offline. {delay.TotalSeconds:0} soniyadan keyin qayta uriniladi...";
 }

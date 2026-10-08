@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using ClassroomControl.Platform;
+using ClassroomControl.StudentAgent.Features;
 using ClassroomControl.StudentAgent.Infrastructure.DependencyInjection;
 using ClassroomControl.StudentAgent.Infrastructure.Helpers;
 using ClassroomControl.StudentAgent.Services;
@@ -26,6 +28,7 @@ namespace ClassroomControl.StudentAgent
         private RegisteredWaitHandle? _showWait;
         private IHost? _host;
         private TrayIconService? _tray;
+        private FeatureIndicatorService? _indicator;
         private ILogger<App>? _logger;
         private AppPaths? _paths;
         private DateTime _lastErrorDialog = DateTime.MinValue;
@@ -84,6 +87,11 @@ namespace ClassroomControl.StudentAgent
             builder.Services.Configure<HostOptions>(o => o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 
             builder.Services.AddStudentAgentCore(paths);
+            builder.Services.AddWindowsPlatform();
+            builder.Services.AddSingleton<ILockScreen, WpfLockScreen>();
+            builder.Services.AddSingleton<IUserNotifier, WpfUserNotifier>();
+            builder.Services.AddSingleton<ITeacherScreenViewer, WpfTeacherScreenViewer>();
+            builder.Services.AddSingleton<FeatureIndicatorService>();
             builder.Services.AddSingleton<IUiDispatcher, WpfDispatcher>();
             builder.Services.AddSingleton<IWindowService, WindowService>();
             builder.Services.AddSingleton<ExitCoordinator>();
@@ -107,6 +115,7 @@ namespace ClassroomControl.StudentAgent
             _showWait = ThreadPool.RegisterWaitForSingleObject(_showEvent!, (_, _) =>
                 Dispatcher.BeginInvoke(new Action(() => services.GetRequiredService<IWindowService>().ShowMain())), null, Timeout.Infinite, false);
 
+            _indicator = services.GetRequiredService<FeatureIndicatorService>();
             _tray = services.GetRequiredService<TrayIconService>();
             _tray.Start();
 
@@ -176,6 +185,7 @@ namespace ClassroomControl.StudentAgent
         protected override void OnExit(ExitEventArgs e)
         {
             _showWait?.Unregister(null);
+            _indicator?.Dispose();
             _tray?.Dispose();
             _host?.Dispose();
             _showEvent?.Dispose();

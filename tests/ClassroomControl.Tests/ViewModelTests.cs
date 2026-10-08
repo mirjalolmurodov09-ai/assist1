@@ -24,7 +24,9 @@ public sealed class ViewModelTests : IDisposable
 
     public void Dispose() => _env.Dispose();
 
-    private MainViewModel Main() => new(_store, _device, _settings, new ImmediateDispatcher(), _windows);
+    private readonly Features.FeatureState _features = new();
+
+    private MainViewModel Main() => new(_store, _device, _settings, new ImmediateDispatcher(), _windows, _features);
 
     [Fact]
     public void Main_window_shows_offline_initially()
@@ -75,6 +77,20 @@ public sealed class ViewModelTests : IDisposable
         Assert.Equal("Ro‘yxatdan o‘tmagan", vm.StudentName);
         _store.Update(s => s with { Registration = RegistrationState.Approved });
         Assert.Equal("Ali", vm.StudentName);
+    }
+
+    [Fact]
+    public void Main_window_tells_the_student_what_the_teacher_is_doing()
+    {
+        var vm = Main();
+        Assert.Equal(string.Empty, vm.ActivityText);
+        _features.SetStreaming(true);
+        _features.SetRemoteControl(true);
+        Assert.Contains("kuzatmoqda", vm.ActivityText, StringComparison.Ordinal);
+        Assert.Contains("boshqarmoqda", vm.ActivityText, StringComparison.Ordinal);
+        _features.SetStreaming(false);
+        _features.SetRemoteControl(false);
+        Assert.Equal(string.Empty, vm.ActivityText);
     }
 
     [Fact]

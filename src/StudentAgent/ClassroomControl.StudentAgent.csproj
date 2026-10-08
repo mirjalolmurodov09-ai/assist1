@@ -24,6 +24,8 @@
     <ProjectReference Include="..\StudentAgent.Core\ClassroomControl.StudentAgent.Core.csproj" />
     <ProjectReference Include="..\Shared\ClassroomControl.Shared.csproj" />
     <ProjectReference Include="..\Infrastructure\ClassroomControl.Infrastructure.csproj" />
+    <ProjectReference Include="..\Platform\ClassroomControl.Platform.csproj" />
+    <ProjectReference Include="..\Wpf\ClassroomControl.Wpf.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
