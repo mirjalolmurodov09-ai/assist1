@@ -27,7 +27,7 @@ public sealed class GdiScreenSource : IScreenSource
         {
             using var full = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(full))
-                g.CopyFromScreen(0, 0, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt);
+                g.CopyFromScreen(0, 0, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
 
             if (maxWidth > 0 && width > maxWidth)
             {
