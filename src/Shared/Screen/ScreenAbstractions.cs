@@ -14,6 +14,9 @@ public interface IScreenSource
     /// <summary>Returns the screen scaled to at most <paramref name="maxWidth"/> pixels wide (0 = native size), or null when the
     /// screen cannot be captured right now (secure desktop, locked session...).</summary>
     RawFrame? Capture(int maxWidth);
+
+    /// <summary>Reason the last <see cref="Capture"/> returned null (for diagnostics), if known.</summary>
+    string? LastError => null;
 }
 
 public interface IFrameEncoder

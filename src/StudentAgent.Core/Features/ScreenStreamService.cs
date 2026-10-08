@@ -108,7 +108,7 @@ public sealed class ScreenStreamService : IScreenStreamService, IAsyncDisposable
                 var raw = await Task.Run(() => SafeCapture(adaptive.MaxWidth), ct).ConfigureAwait(false);
                 if (raw is null)
                 {
-                    if (!warned) _logger.LogWarning("Screen cannot be captured right now (locked or secure desktop).");
+                    if (!warned) _logger.LogWarning("Screen cannot be captured right now (locked or secure desktop). {Reason}", _source.LastError ?? "no details");
                     warned = true;
                     continue;
                 }

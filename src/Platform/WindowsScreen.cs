@@ -11,11 +11,17 @@ namespace ClassroomControl.Platform;
 [SupportedOSPlatform("windows")]
 public sealed class GdiScreenSource : IScreenSource
 {
+    public string? LastError { get; private set; }
+
     public RawFrame? Capture(int maxWidth)
     {
         var width = Native.GetSystemMetrics(Native.SM_CXSCREEN);
         var height = Native.GetSystemMetrics(Native.SM_CYSCREEN);
-        if (width <= 0 || height <= 0) return null;
+        if (width <= 0 || height <= 0)
+        {
+            LastError = $"GetSystemMetrics returned {width}x{height}";
+            return null;
+        }
 
         try
         {
@@ -40,6 +46,7 @@ public sealed class GdiScreenSource : IScreenSource
         }
         catch (Exception ex) when (ex is Win32Exception or ExternalException or ArgumentException)
         {
+            LastError = ex.GetType().Name + ": " + ex.Message;
             return null; // locked workstation / secure desktop / session switch
         }
     }
