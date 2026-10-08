@@ -44,6 +44,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ShutdownCommand = Cmd(() => PowerAsync(restart: false), HasSelection);
         OpenApplicationCommand = Cmd(OpenApplicationAsync, HasSelection);
         CloseApplicationCommand = Cmd(CloseApplicationAsync, HasSelection);
+        BlockApplicationCommand = Cmd(() => BlockAsync(block: true), HasSelection);
+        UnblockApplicationCommand = Cmd(() => BlockAsync(block: false), HasSelection);
         ViewScreenCommand = new RelayCommand(() => OpenFullScreen(false), () => Selected().Count == 1);
         RemoteControlCommand = new RelayCommand(() => OpenFullScreen(true), () => Selected().Count == 1);
         ShareScreenSelectedCommand = Cmd(() => ToggleShareAsync(ShareTarget.Selected), () => _isSharing || HasSelection());
@@ -85,6 +87,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand ShutdownCommand { get; }
     public ICommand OpenApplicationCommand { get; }
     public ICommand CloseApplicationCommand { get; }
+    public ICommand BlockApplicationCommand { get; }
+    public ICommand UnblockApplicationCommand { get; }
     public ICommand ViewScreenCommand { get; }
     public ICommand RemoteControlCommand { get; }
     public ICommand ShareScreenSelectedCommand { get; }
@@ -272,7 +276,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var command in new ICommand[]
         {
             LockSelectedCommand, UnlockSelectedCommand, MessageSelectedCommand, ScreenshotCommand, RestartCommand, ShutdownCommand, OpenApplicationCommand,
-            CloseApplicationCommand, ShareScreenSelectedCommand, ShareScreenGroupCommand, ApproveCommand, RejectCommand, RenameCommand, RemoveCommand,
+            CloseApplicationCommand, BlockApplicationCommand, UnblockApplicationCommand, ShareScreenSelectedCommand, ShareScreenGroupCommand, ApproveCommand, RejectCommand, RenameCommand, RemoveCommand,
             MoveToGroupCommand, ViewScreenCommand, RemoteControlCommand,
         })
         {
@@ -360,6 +364,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var name = await _dialogs.PromptAsync(Loc.Instance["CloseApp.Title"], Loc.Instance["CloseApp.Label"], string.Empty, false).ConfigureAwait(true);
         if (string.IsNullOrWhiteSpace(name)) return;
         await RunAsync(Selected().Where(c => c.CanBeCommanded), "CloseApp.Done", id => _server.StopApplicationAsync(id, name.Trim())).ConfigureAwait(true);
+    }
+
+    private async Task BlockAsync(bool block)
+    {
+        var name = await _dialogs.PromptAsync(Loc.Instance[block ? "BlockApp.Title" : "UnblockApp.Title"], Loc.Instance["BlockApp.Label"], string.Empty, false).ConfigureAwait(true);
+        if (string.IsNullOrWhiteSpace(name)) return;
+        await RunAsync(Selected().Where(c => c.CanBeCommanded), block ? "BlockApp.Done" : "UnblockApp.Done",
+            id => block ? _server.BlockApplicationAsync(id, name.Trim()) : _server.UnblockApplicationAsync(id, name.Trim())).ConfigureAwait(true);
     }
 
     private void OpenFullScreen(bool withRemoteControl)

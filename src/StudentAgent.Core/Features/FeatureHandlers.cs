@@ -296,3 +296,40 @@ public sealed class StopApplicationCommandHandler : ICommandHandler
             : CommandResults.Error(context.CommandId, context.DeviceId, CommandStatus.Failed, ErrorCodes.CommandFailed, "Bunday dastur ishlamayapti yoki to‘xtatib bo‘lmaydi."));
     }
 }
+
+public sealed class BlockApplicationCommandHandler : ICommandHandler
+{
+    private readonly IApplicationBlocker _blocker;
+
+    public BlockApplicationCommandHandler(IApplicationBlocker blocker) => _blocker = blocker;
+    public string Name => CommandNames.BlockApplication;
+    public bool IsImplemented => true;
+
+    public Task<CommandResult> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+    {
+        var name = Parameters.Read<BlockApplicationParameters>(context)?.ProcessName?.Trim() ?? string.Empty;
+        if (!IsValidProcessName(name)) return Task.FromResult(Parameters.Invalid(context, "jarayon nomi kerak"));
+        _blocker.Block(name);
+        return Task.FromResult(CommandResults.Success(context, "Application blocked", new { blocked = _blocker.Blocked }));
+    }
+
+    internal static bool IsValidProcessName(string name) =>
+        name.Length is > 0 and <= 64 && name.IndexOfAny(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) < 0;
+}
+
+public sealed class UnblockApplicationCommandHandler : ICommandHandler
+{
+    private readonly IApplicationBlocker _blocker;
+
+    public UnblockApplicationCommandHandler(IApplicationBlocker blocker) => _blocker = blocker;
+    public string Name => CommandNames.UnblockApplication;
+    public bool IsImplemented => true;
+
+    public Task<CommandResult> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+    {
+        var name = Parameters.Read<BlockApplicationParameters>(context)?.ProcessName?.Trim() ?? string.Empty;
+        if (!BlockApplicationCommandHandler.IsValidProcessName(name)) return Task.FromResult(Parameters.Invalid(context, "jarayon nomi kerak"));
+        _blocker.Unblock(name);
+        return Task.FromResult(CommandResults.Success(context, "Application unblocked", new { blocked = _blocker.Blocked }));
+    }
+}

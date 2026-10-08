@@ -171,6 +171,8 @@
                         <Button Content="{l:Loc Action.ShareGroup}" Command="{Binding ShareScreenGroupCommand}" />
                         <Button Content="{l:Loc Action.OpenApp}" Command="{Binding OpenApplicationCommand}" />
                         <Button Content="{l:Loc Action.CloseApp}" Command="{Binding CloseApplicationCommand}" />
+                        <Button Content="{l:Loc Action.BlockApp}" Command="{Binding BlockApplicationCommand}" />
+                        <Button Content="{l:Loc Action.UnblockApp}" Command="{Binding UnblockApplicationCommand}" />
                         <Button Content="{l:Loc Action.Restart}" Command="{Binding RestartCommand}" Style="{StaticResource DangerButton}" />
                         <Button Content="{l:Loc Action.Shutdown}" Command="{Binding ShutdownCommand}" Style="{StaticResource DangerButton}" />
                         <Separator Margin="0,6" />

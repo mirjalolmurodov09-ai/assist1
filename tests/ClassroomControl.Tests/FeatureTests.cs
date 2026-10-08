@@ -460,6 +460,54 @@ public sealed class FeatureIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Blocked_applications_are_closed_repeatedly_shown_to_the_student_and_released_with_the_session()
+    {
+        var (t, a) = await ConnectedAsync();
+        var state = a.Services.GetRequiredService<FeatureState>();
+        a.Platform.System.StopResult = 0;
+
+        Assert.True((await t.Server.BlockApplicationAsync(a.DeviceId, "notepad.exe")).Success);
+        Assert.Equal(["notepad"], state.BlockedApplications);
+        Assert.True(await t.WaitForAsync(() => a.Platform.System.StopCalls >= 2, Wait), "the blocked name must be enforced repeatedly");
+        var main = new ViewModels.MainViewModel(a.Services.GetRequiredService<Services.IAgentStatusStore>(), a.Services.GetRequiredService<Services.IDeviceInfoService>(),
+            a.Settings, new ImmediateDispatcher(), new NoWindows(), state);
+        Assert.Contains("notepad", main.ActivityText, StringComparison.Ordinal);
+        Assert.True(await t.WaitForAsync(() => t.Server.GetDevice(a.DeviceId)!.Status?.BlockedApplications == 1, Wait));
+
+        Assert.True((await t.Server.UnblockApplicationAsync(a.DeviceId, "notepad")).Success);
+        Assert.Empty(state.BlockedApplications);
+        var calls = a.Platform.System.StopCalls;
+        await Task.Delay(2600);
+        Assert.Equal(calls, a.Platform.System.StopCalls); // no longer enforced
+
+        await t.Server.BlockApplicationAsync(a.DeviceId, "calc");
+        Assert.Equal(ErrorCodes.InvalidParameters, (await t.Server.BlockApplicationAsync(a.DeviceId, @"..\x")).ErrorCode);
+        await t.StopAsync(); // Teacher disappears: restrictions end with the session
+        Assert.True(await t.WaitForAsync(() => state.BlockedApplications.Count == 0, Wait));
+    }
+
+    [Fact]
+    public async Task A_changed_boot_time_is_recorded_as_a_restart_of_the_computer()
+    {
+        var (t, a) = await ConnectedAsync();
+        Assert.True(await t.WaitForAsync(() => t.Server.Store.GetSetting($"boot.{a.DeviceId}") is not null, Wait));
+        await t.Server.LockAsync(a.DeviceId, "x"); // forces a status update
+        await t.Server.UnlockAsync(a.DeviceId);
+        Assert.DoesNotContain(t.Server.Store.QueryLogs(100), l => l.Action == "Computer restarted"); // same boot time: nothing
+
+        a.Platform.Metrics.BootTime += 3600; // Windows was restarted an hour later
+        await t.Server.LockAsync(a.DeviceId, "x");
+        Assert.True(await t.WaitForAsync(() => t.Server.Store.QueryLogs(100).Any(l => l.Action == "Computer restarted"), Wait));
+    }
+
+    private sealed class NoWindows : ViewModels.IWindowService
+    {
+        public void ShowMain() { }
+        public void ShowSettings(bool aboutTab = false) { }
+        public void ShowRegistration() { }
+    }
+
+    [Fact]
     public async Task Every_command_in_the_protocol_has_a_handler_on_the_student()
     {
         var (_, a) = await ConnectedAsync();

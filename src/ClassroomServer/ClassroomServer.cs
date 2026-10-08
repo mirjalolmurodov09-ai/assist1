@@ -20,6 +20,7 @@ public sealed class ClassroomServer : IAsyncDisposable
     private const int MaxNameLength = 64;
     private const int MaxIpLength = 45;
     private static readonly TimeSpan SeenWriteInterval = TimeSpan.FromSeconds(30);
+    private const long BootTimeToleranceSeconds = 120; // the boot time is derived from a tick counter and drifts by a second or two
 
     private readonly ClassroomServerOptions _options;
     private readonly ILogger<ClassroomServer> _logger;
@@ -389,6 +390,7 @@ public sealed class ClassroomServer : IAsyncDisposable
 
                 case MessageTypes.StatusUpdate:
                     device.Status = MessageSerializer.Deserialize<StatusUpdateMessage>(message.Payload);
+                    DetectRestart(device.DeviceId, device.Status.BootTimeUnixSeconds);
                     Raise(device.DeviceId);
                     break;
 
@@ -438,6 +440,18 @@ public sealed class ClassroomServer : IAsyncDisposable
         {
             // Shutting down.
         }
+    }
+
+    /// <summary>The student reports when Windows booted; a different boot time than last seen means the computer was restarted.</summary>
+    private void DetectRestart(string deviceId, long bootTime)
+    {
+        if (bootTime <= 0) return;
+        var key = $"boot.{deviceId}";
+        var previous = long.TryParse(Store.GetSetting(key), out var p) ? p : 0;
+        if (previous != 0 && Math.Abs(bootTime - previous) <= BootTimeToleranceSeconds) return;
+        Store.SetSetting(key, bootTime.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (previous == 0) return;
+        Audit("Computer restarted", Store.GetComputer(deviceId)?.Title ?? deviceId, "Detected", $"Windows boot time changed ({previous} -> {bootTime})");
     }
 
     private void TouchSeen(string deviceId)
@@ -659,6 +673,10 @@ public sealed class ClassroomServer : IAsyncDisposable
         ExecuteAsync(deviceId, CommandNames.StartApplication, new StartApplicationParameters(target, arguments));
     public Task<CommandOutcome> StopApplicationAsync(string deviceId, string processName) =>
         ExecuteAsync(deviceId, CommandNames.StopApplication, new StopApplicationParameters(processName));
+    public Task<CommandOutcome> BlockApplicationAsync(string deviceId, string processName) =>
+        ExecuteAsync(deviceId, CommandNames.BlockApplication, new BlockApplicationParameters(processName));
+    public Task<CommandOutcome> UnblockApplicationAsync(string deviceId, string processName) =>
+        ExecuteAsync(deviceId, CommandNames.UnblockApplication, new BlockApplicationParameters(processName));
 
     // ------------------------------------------------------------------ streams
 

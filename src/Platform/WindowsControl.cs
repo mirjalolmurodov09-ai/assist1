@@ -198,7 +198,7 @@ public sealed class SystemMetrics : ISystemMetrics
         {
             var cpu = ReadCpu();
             var (total, used) = ReadMemory();
-            return new SystemSnapshot(cpu, total, used);
+            return new SystemSnapshot(cpu, total, used, DateTimeOffset.UtcNow.ToUnixTimeSeconds() - Environment.TickCount64 / 1000);
         }
     }
 

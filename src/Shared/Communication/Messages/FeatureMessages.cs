@@ -14,6 +14,8 @@ public sealed record StartApplicationParameters(string Target, string? Arguments
 
 public sealed record StopApplicationParameters(string ProcessName);
 
+public sealed record BlockApplicationParameters(string ProcessName);
+
 public sealed record PowerParameters(int DelaySeconds, string? Reason);
 
 /// <summary>Payload of a successful <c>Screenshot</c> command.</summary>
@@ -53,4 +55,6 @@ public sealed record StatusUpdateMessage(
     int CpuPercent,
     long RamTotalBytes,
     long RamUsedBytes,
-    int PingMilliseconds);
+    int PingMilliseconds,
+    int BlockedApplications = 0,
+    long BootTimeUnixSeconds = 0);

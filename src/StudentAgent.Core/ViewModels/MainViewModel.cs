@@ -46,6 +46,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _features.Streaming ? UiStrings.ActivityWatched : null,
         _features.RemoteControl ? UiStrings.ActivityRemote : null,
         _features.TeacherScreen ? UiStrings.ActivityTeacherScreen : null,
+        _features.BlockedApplications.Count > 0 ? UiStrings.ActivityBlocked(_features.BlockedApplications) : null,
     }.Where(line => line is not null));
 
     private void OnFeaturesChanged(object? sender, EventArgs e) => _ui.Post(() => Raise(nameof(ActivityText)));

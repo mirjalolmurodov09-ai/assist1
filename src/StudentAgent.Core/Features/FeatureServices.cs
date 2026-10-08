@@ -134,6 +134,7 @@ public sealed class FeatureCoordinator : IFeatureCoordinator
     private readonly IRemoteInputService _remote;
     private readonly ITeacherScreenService _teacherScreen;
     private readonly ILockScreen _lockScreen;
+    private readonly IApplicationBlocker _blocker;
     private readonly FeatureState _state;
     private readonly TimeProvider _time;
     private readonly ILogger<FeatureCoordinator> _logger;
@@ -142,8 +143,9 @@ public sealed class FeatureCoordinator : IFeatureCoordinator
     private int _autoUnlockSeconds = 30;
 
     public FeatureCoordinator(IScreenStreamService stream, IRemoteInputService remote, ITeacherScreenService teacherScreen, ILockScreen lockScreen,
-        FeatureState state, TimeProvider time, ILogger<FeatureCoordinator> logger)
+        IApplicationBlocker blocker, FeatureState state, TimeProvider time, ILogger<FeatureCoordinator> logger)
     {
+        _blocker = blocker;
         _stream = stream;
         _remote = remote;
         _teacherScreen = teacherScreen;
@@ -170,6 +172,7 @@ public sealed class FeatureCoordinator : IFeatureCoordinator
             await _stream.StopAsync().ConfigureAwait(false);
             _remote.Stop();
             _teacherScreen.Stop();
+            _blocker.Clear();
         }
         catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
         {
@@ -223,7 +226,7 @@ public sealed class StatusReporter
     {
         var m = _metrics.Read();
         return new StatusUpdateMessage(_state.Locked, _state.Streaming, _state.RemoteControl, _state.TeacherScreen,
-            m.CpuPercent, m.RamTotalBytes, m.RamUsedBytes, _ping.LastMilliseconds);
+            m.CpuPercent, m.RamTotalBytes, m.RamUsedBytes, _ping.LastMilliseconds, _state.BlockedApplications.Count, m.BootTimeUnixSeconds);
     }
 
     /// <summary>Sends STATUS_UPDATE every few seconds and immediately when a feature turns on or off.</summary>

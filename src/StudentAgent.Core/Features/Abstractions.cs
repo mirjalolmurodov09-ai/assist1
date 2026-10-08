@@ -35,7 +35,7 @@ public interface ITeacherScreenViewer
     void Close();
 }
 
-public sealed record SystemSnapshot(int CpuPercent, long RamTotalBytes, long RamUsedBytes);
+public sealed record SystemSnapshot(int CpuPercent, long RamTotalBytes, long RamUsedBytes, long BootTimeUnixSeconds = 0);
 
 public interface ISystemMetrics
 {
@@ -47,6 +47,7 @@ public sealed class FeatureState
 {
     private readonly object _gate = new();
     private bool _locked, _streaming, _remote, _teacherScreen;
+    private IReadOnlyList<string> _blocked = [];
 
     public event EventHandler? Changed;
 
@@ -54,7 +55,22 @@ public sealed class FeatureState
     public bool Streaming => Get(ref _streaming);
     public bool RemoteControl => Get(ref _remote);
     public bool TeacherScreen => Get(ref _teacherScreen);
-    public bool Any => Locked || Streaming || RemoteControl || TeacherScreen;
+    public IReadOnlyList<string> BlockedApplications
+    {
+        get { lock (_gate) return _blocked; }
+    }
+
+    public bool Any => Locked || Streaming || RemoteControl || TeacherScreen || BlockedApplications.Count > 0;
+
+    public void SetBlockedApplications(IReadOnlyList<string> names)
+    {
+        lock (_gate)
+        {
+            if (_blocked.SequenceEqual(names, StringComparer.OrdinalIgnoreCase)) return;
+            _blocked = names;
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 
     public void SetLocked(bool value) => Set(ref _locked, value);
     public void SetStreaming(bool value) => Set(ref _streaming, value);

@@ -64,6 +64,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICommandHandler, ShutdownCommandHandler>();
         services.AddSingleton<ICommandHandler, StartApplicationCommandHandler>();
         services.AddSingleton<ICommandHandler, StopApplicationCommandHandler>();
+        services.AddSingleton<IApplicationBlocker, ApplicationBlocker>();
+        services.AddSingleton<ICommandHandler, BlockApplicationCommandHandler>();
+        services.AddSingleton<ICommandHandler, UnblockApplicationCommandHandler>();
         services.AddSingleton<ICommandDispatcher, CommandDispatcher>();
 
         services.AddSingleton<AgentService>();

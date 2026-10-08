@@ -55,6 +55,7 @@ public sealed class RecordingSystem : ISystemControl
 {
     public ConcurrentQueue<string> Calls { get; } = new();
     public int StopResult { get; set; } = 1;
+    public int StopCalls;
     public void Restart(int delaySeconds, string? reason) => Calls.Enqueue($"restart:{delaySeconds}");
     public void Shutdown(int delaySeconds, string? reason) => Calls.Enqueue($"shutdown:{delaySeconds}");
 
@@ -66,6 +67,7 @@ public sealed class RecordingSystem : ISystemControl
 
     public int StopApplication(string processName)
     {
+        Interlocked.Increment(ref StopCalls);
         Calls.Enqueue($"stop:{processName}");
         return StopResult;
     }
@@ -97,7 +99,8 @@ public sealed class RecordingViewer : ITeacherScreenViewer
 
 public sealed class FakeMetrics : ISystemMetrics
 {
-    public SystemSnapshot Read() => new(17, 8L * 1024 * 1024 * 1024, 3L * 1024 * 1024 * 1024);
+    public long BootTime { get; set; } = 1_700_000_000;
+    public SystemSnapshot Read() => new(17, 8L * 1024 * 1024 * 1024, 3L * 1024 * 1024 * 1024, BootTime);
 }
 
 /// <summary>The fake Windows for a headless agent. Tests read what the agent "did" from these objects.</summary>

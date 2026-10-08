@@ -19,11 +19,13 @@ public static class CommandNames
     public const string SendMessage = "SendMessage";
     public const string StartTeacherScreen = "StartTeacherScreen";
     public const string StopTeacherScreen = "StopTeacherScreen";
+    public const string BlockApplication = "BlockApplication";
+    public const string UnblockApplication = "UnblockApplication";
 
     /// <summary>Every command a Teacher may send to a Student Agent in protocol 1.0.</summary>
     public static readonly string[] All =
     [
         Ping, GetStatus, GetDeviceInfo, Lock, Unlock, Screenshot, StartApplication, StopApplication, Restart, Shutdown,
-        StartScreenStream, StopScreenStream, StartRemoteControl, StopRemoteControl, SendMessage, StartTeacherScreen, StopTeacherScreen,
+        StartScreenStream, StopScreenStream, StartRemoteControl, StopRemoteControl, SendMessage, StartTeacherScreen, StopTeacherScreen, BlockApplication, UnblockApplication,
     ];
 }

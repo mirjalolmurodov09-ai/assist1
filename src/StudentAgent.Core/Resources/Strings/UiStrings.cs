@@ -31,5 +31,7 @@ public static class UiStrings
     public const string ActivityRemote = "🖱 O‘qituvchi kompyuteringizni boshqarmoqda.";
     public const string ActivityTeacherScreen = "📺 O‘qituvchi ekrani ko‘rsatilmoqda.";
 
+    public static string ActivityBlocked(IEnumerable<string> names) => $"⛔ O‘qituvchi bu dasturlarni taqiqladi: {string.Join(", ", names)}.";
+
     public static string ReconnectingIn(TimeSpan delay) => $"Offline. {delay.TotalSeconds:0} soniyadan keyin qayta uriniladi...";
 }
