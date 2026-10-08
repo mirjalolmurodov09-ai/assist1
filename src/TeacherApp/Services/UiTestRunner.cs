@@ -15,7 +15,7 @@ namespace ClassroomControl.TeacherApp.Services
     /// The process exit code is 0 only when every step passed.</summary>
     internal sealed class UiTestRunner
     {
-        public const string UserName = "ci";
+        public const string UserName = "ci-teacher";
         public const string Password = "ci-Password-1!";
         private static readonly TimeSpan Step = TimeSpan.FromSeconds(30);
 

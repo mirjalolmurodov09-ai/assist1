@@ -54,6 +54,7 @@ public sealed class DiscoveryService : IDiscoveryService
         }
 
         using var udp = new UdpClient(AddressFamily.InterNetwork) { EnableBroadcast = true };
+        DisableConnectionReset(udp);
         udp.Client.Bind(new IPEndPoint(IPAddress.Any, 0));
 
         var nonce = HandshakeCrypto.NewNonce();
@@ -71,7 +72,15 @@ public sealed class DiscoveryService : IDiscoveryService
             {
                 while (true)
                 {
-                    var datagram = await udp.ReceiveAsync(window.Token).ConfigureAwait(false);
+                    UdpReceiveResult datagram;
+                    try
+                    {
+                        datagram = await udp.ReceiveAsync(window.Token).ConfigureAwait(false);
+                    }
+                    catch (SocketException ex) when (ex.SocketErrorCode is SocketError.ConnectionReset or SocketError.ConnectionRefused)
+                    {
+                        continue; // Windows reports an ICMP "port unreachable" from an earlier send here; it says nothing about other targets.
+                    }
                     var teacher = Evaluate(datagram, key, nonce, ref rejected);
                     if (teacher is not null)
                     {
@@ -86,6 +95,15 @@ public sealed class DiscoveryService : IDiscoveryService
             }
         }
         return new DiscoveryResult(null, rejected);
+    }
+
+    /// <summary>Windows makes an unconnected UDP socket fail its next receive with WSAECONNRESET after an ICMP port-unreachable.
+    /// Switch that behaviour off (SIO_UDP_CONNRESET); other systems do not have it.</summary>
+    private static void DisableConnectionReset(UdpClient udp)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        const int SioUdpConnReset = -1744830452;
+        udp.Client.IOControl((IOControlCode)SioUdpConnReset, [0, 0, 0, 0], null);
     }
 
     private async Task SendRequestAsync(UdpClient udp, IReadOnlyList<IPAddress> targets, int port, string nonce, CancellationToken ct)

@@ -125,18 +125,26 @@ jobs:
           }
           exit 0
 
-      - name: Publish UI screenshots to the ci-ui branch
+      - name: Publish UI screenshots and logs to the ci-ui branch
         if: always()
         shell: pwsh
         run: |
-          if (-not (Test-Path ci-out)) { exit 0 }
+          $stage = Join-Path $env:RUNNER_TEMP 'ci-ui'
+          New-Item -ItemType Directory $stage -Force | Out-Null
+          if (Test-Path ci-out) { Copy-Item ci-out\* $stage -Recurse }
+          foreach ($log in Get-ChildItem ci-data -Recurse -Filter *.log -ErrorAction SilentlyContinue) {
+            $target = Join-Path $stage ('logs\' + $log.Directory.Parent.Name + '-' + $log.Name)
+            New-Item -ItemType Directory (Split-Path $target) -Force | Out-Null
+            Copy-Item $log.FullName $target
+          }
+          if (-not (Get-ChildItem $stage -Recurse -File)) { exit 0 }
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          Copy-Item ci-out ci-ui-out -Recurse
           git checkout --orphan ci-ui
           git rm -rf --quiet .
-          Copy-Item ci-ui-out\* . -Recurse
-          git add -A
+          Copy-Item "$stage\*" . -Recurse
+          $files = Get-ChildItem $stage -Recurse -File | ForEach-Object { $_.FullName.Substring($stage.Length + 1) }
+          git add -- $files
           git commit -m "UI test output for ${{ github.sha }}"
           git push -f origin ci-ui
           exit 0
@@ -154,7 +162,7 @@ jobs:
           git config user.email "github-actions@users.noreply.github.com"
           git checkout --orphan dist
           git rm -rf --quiet .
-          Copy-Item dist-out\* . 
-          git add -A
+          Copy-Item dist-out\* .
+          git add -- (Get-ChildItem dist-out -File | ForEach-Object { $_.Name })
           git commit -m "Binaries built from ${{ github.sha }}"
           git push -f origin dist
