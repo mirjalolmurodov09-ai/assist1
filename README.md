@@ -10,6 +10,13 @@ Lokal tarmoq (LAN/Wi‑Fi) orqali o‘qituvchi kompyuteridan o‘quvchilar kompy
 
 Installerlar: `ClassroomControl-Teacher-Setup.exe`, `ClassroomControl-Student-Setup.exe`, `ClassroomControl-Setup.exe` (ikkalasi).
 
+
+## Downloads (built and tested by GitHub Actions on Windows)
+
+Files are on the `dist` branch: `ClassroomControl-Setup.exe` (Teacher + Student), `ClassroomControl-Teacher-Setup.exe`,
+`ClassroomControl-Student-Setup.exe`, and portable `ClassroomControl.Teacher-win-x64.zip` / `ClassroomControl.Student-win-x64.zip`.
+Open the `dist` branch on GitHub, select a file and press *Download raw file*.
+
 ## Hujjatlar
 - [O‘rnatish qo‘llanmasi](docs/INSTALLATION.md) · [Foydalanuvchi qo‘llanmasi (o‘qituvchi va o‘quvchi)](docs/USER_MANUAL.md) · [Tarmoq va firewall](docs/NETWORK.md)
 - [Xavfsizlik modeli](docs/SECURITY.md) · [Protokol 1.0](docs/PROTOCOL.md) · [Ma’lumotlar bazasi](docs/DATABASE.md) · [Testlar va qabul mezonlari](docs/TESTING.md)
