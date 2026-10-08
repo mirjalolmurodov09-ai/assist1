@@ -8,7 +8,7 @@
     <!-- WPF and WinForms both define Application/MessageBox etc.; usings are explicit in this project. -->
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>ClassroomControl.StudentAgent</RootNamespace>
-    <AssemblyName>ClassroomControl.StudentAgent</AssemblyName>
+    <AssemblyName>ClassroomControl.Student</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Resources\Icons\agent.ico</ApplicationIcon>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>

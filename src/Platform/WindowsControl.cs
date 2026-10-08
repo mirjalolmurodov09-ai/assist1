@@ -77,7 +77,7 @@ public sealed class WindowsSystemControl : ISystemControl
     private static readonly HashSet<string> Protected = new(StringComparer.OrdinalIgnoreCase)
     {
         "explorer", "winlogon", "csrss", "lsass", "services", "svchost", "smss", "wininit", "system", "dwm", "fontdrvhost", "sihost", "ctfmon",
-        "ClassroomControl.StudentAgent",
+        "ClassroomControl.Student", "ClassroomControl.Teacher",
     };
     private readonly ILogger<WindowsSystemControl> _logger;
 

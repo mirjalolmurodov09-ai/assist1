@@ -1,4 +1,4 @@
-name: Student Agent
+name: Classroom Control
 
 on:
   push:
@@ -21,89 +21,140 @@ jobs:
       - name: Test
         run: dotnet test tests/ClassroomControl.Tests -c Release --no-build --logger "trx;LogFileName=tests.trx"
 
-      - name: Publish (self-contained win-x64)
-        run: dotnet publish src/StudentAgent/ClassroomControl.StudentAgent.csproj -c Release -r win-x64 --self-contained true -o publish
-
-      - name: Verify publish output
+      - name: Publish Teacher and Student (self-contained win-x64)
         shell: pwsh
         run: |
-          foreach ($f in 'ClassroomControl.StudentAgent.exe','ClassroomControl.StudentAgent.Core.dll','appsettings.json','Resources\Icons\agent.ico') {
-            if (-not (Test-Path "publish\$f")) { throw "Missing $f in publish output" }
+          dotnet publish src/TeacherApp/ClassroomControl.Teacher.csproj -c Release -r win-x64 --self-contained true -o publish/teacher
+          dotnet publish src/StudentAgent/ClassroomControl.StudentAgent.csproj -c Release -r win-x64 --self-contained true -o publish/student
+          foreach ($f in 'teacher\ClassroomControl.Teacher.exe','teacher\appsettings.json','student\ClassroomControl.Student.exe','student\appsettings.json','student\Resources\Icons\agent.ico','teacher\Resources\Icons\teacher.ico') {
+            if (($f -notlike '*appsettings*' -or $f -like 'student*') -and -not (Test-Path "publish\$f")) { throw "Missing $f in publish output" }
           }
-          Get-ChildItem publish | Select-Object -First 15 Name, Length
+          Get-ChildItem publish\teacher, publish\student -Filter *.exe | Select-Object Name, Length
 
-      - name: Smoke test (agent starts, creates Device ID, logs, stays alive)
+      - name: Smoke test - Student starts, creates Device ID, logs, allows one instance
         shell: pwsh
         run: |
-          $data = Join-Path $env:LOCALAPPDATA 'ClassroomControl\StudentAgent'
-          if (Test-Path $data) { Remove-Item $data -Recurse -Force }
-          $p = Start-Process -FilePath 'publish\ClassroomControl.StudentAgent.exe' -ArgumentList '--minimized','--disable-autostart' -PassThru
+          $data = Join-Path $PWD 'ci-data\smoke'
+          $p = Start-Process -FilePath 'publish\student\ClassroomControl.Student.exe' -ArgumentList '--minimized','--disable-autostart','--data-dir',$data -PassThru
           Start-Sleep -Seconds 8
-          if ($p.HasExited) { Get-Content "$data\logs\*" -ErrorAction SilentlyContinue; Get-Content "$data\logs\crash.log" -ErrorAction SilentlyContinue; throw "Agent exited early with code $($p.ExitCode)" }
+          if ($p.HasExited) { Get-ChildItem $data -Recurse | Out-Host; Get-Content "$data\logs\crash.log" -ErrorAction SilentlyContinue; throw "Student exited early with code $($p.ExitCode)" }
           $settings = Get-Content "$data\settings.json" -Raw | ConvertFrom-Json
           if (-not [guid]::TryParse($settings.DeviceId, [ref][guid]::Empty)) { throw 'Device ID missing' }
           if ($settings.StartWithWindows) { throw '--disable-autostart was not honoured' }
           $log = Get-Content "$data\logs\agent-*.log" -Raw
           if ($log -notmatch 'Agent Started') { throw "Log has no 'Agent Started': $log" }
-          Write-Host $log
-          # second launch must not start another agent
-          $second = Start-Process -FilePath 'publish\ClassroomControl.StudentAgent.exe' -ArgumentList '--minimized' -PassThru
-          $second.WaitForExit(15000) | Out-Null
-          if (-not $second.HasExited) { throw 'Second instance did not exit' }
+          $second = Start-Process -FilePath 'publish\student\ClassroomControl.Student.exe' -ArgumentList '--minimized','--data-dir',$data -PassThru
+          if (-not $second.WaitForExit(15000)) { throw 'Second instance did not exit' }
           Stop-Process -Id $p.Id -Force
 
-      - name: Installer
+      - name: End-to-end - real Teacher UI + two real Student Agents (discovery and direct), every feature
+        shell: pwsh
+        run: |
+          $code = 'CLASS-CI01-2026'
+          $out = Join-Path $PWD 'ci-out'
+          New-Item -ItemType Directory $out -Force | Out-Null
+          $teacher = Start-Process -FilePath 'publish\teacher\ClassroomControl.Teacher.exe' -PassThru -ArgumentList '--ui-test',$out,'--data-dir',(Join-Path $PWD 'ci-data\teacher'),'--allow-loopback','--classroom-code',$code,'--expect','2','--tcp-port','39701','--discovery-port','39700'
+          Start-Sleep -Seconds 6
+          $s1 = Start-Process -FilePath 'publish\student\ClassroomControl.Student.exe' -PassThru -ArgumentList '--minimized','--disable-autostart','--data-dir',(Join-Path $PWD 'ci-data\s1'),'--classroom-code',$code,'--teacher-address','127.0.0.1','--teacher-port','39701','--student-name','CI-Student-1','--computer-name','CI-PC-1','--allow-loopback'
+          $s2 = Start-Process -FilePath 'publish\student\ClassroomControl.Student.exe' -PassThru -ArgumentList '--minimized','--disable-autostart','--data-dir',(Join-Path $PWD 'ci-data\s2'),'--classroom-code',$code,'--discovery-port','39700','--discovery-target','127.0.0.1','--student-name','CI-Student-2','--computer-name','CI-PC-2','--allow-loopback'
+          $finished = $teacher.WaitForExit(300000)
+          foreach ($p in $s1, $s2) { if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force } }
+          if (-not $finished) { Stop-Process -Id $teacher.Id -Force; Get-ChildItem $out | Out-Host; throw 'Teacher UI test did not finish in time' }
+          if (-not (Test-Path "$out\result.json")) {
+            Get-ChildItem 'ci-data' -Recurse -Filter *.log | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 40 }
+            throw "No result.json (Teacher exit code $($teacher.ExitCode))"
+          }
+          $result = Get-Content "$out\result.json" -Raw | ConvertFrom-Json
+          $result.steps | ForEach-Object { '{0,-70} {1} {2}' -f $_.step, $(if ($_.ok) { 'OK' } else { 'FAILED' }), $_.note } | Out-Host
+          if (-not $result.ok) {
+            Get-ChildItem 'ci-data' -Recurse -Filter *.log | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 60 }
+            throw 'End-to-end test failed'
+          }
+
+      - name: Installers (Teacher, Student, Full)
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
-          & $iscc installer\ClassroomControl-Student-Setup.iss
-          if ($LASTEXITCODE -ne 0) { throw 'ISCC failed' }
-          Get-Item artifacts\ClassroomControl-Student-Setup.exe
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          foreach ($edition in 'Teacher','Student','Full') {
+            & $iscc "/DEdition=$edition" installer\ClassroomControl.iss
+            if ($LASTEXITCODE -ne 0) { throw "ISCC failed for $edition" }
+          }
+          Get-ChildItem artifacts | Select-Object Name, Length
 
-      - name: Install / uninstall test
+      - name: Install / uninstall test (Full installer)
         shell: pwsh
         run: |
-          $rule = 'ClassroomControl Student Agent (discovery replies, local subnet)'
-          $dir = "$env:ProgramFiles\ClassroomControl\StudentAgent"
-          $setup = Start-Process artifacts\ClassroomControl-Student-Setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=startup' -Wait -PassThru
+          $rules = 'ClassroomControl Student (discovery replies, local subnet)','ClassroomControl Teacher (UDP 39500 discovery, local subnet)','ClassroomControl Teacher (TCP 39501 sessions, local subnet)'
+          $dir = "$env:ProgramFiles\ClassroomControl"
+          $setup = Start-Process artifacts\ClassroomControl-Setup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=startup' -Wait -PassThru
           if ($setup.ExitCode -ne 0) { throw "Setup exit code $($setup.ExitCode)" }
-          if (-not (Test-Path "$dir\ClassroomControl.StudentAgent.exe")) { throw 'Not installed' }
-          if (-not (Test-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Classroom Control\Student Agent.lnk")) { throw 'Start Menu shortcut missing' }
-          $run = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run').'ClassroomControl.StudentAgent'
-          if (-not $run) { throw 'Startup entry missing' }
-          $fw = netsh advfirewall firewall show rule name="$rule" | Out-String
-          Write-Host $fw
-          if ($fw -notmatch 'LocalSubnet' -or $fw -notmatch 'UDP' -or $fw -notmatch 'Direction:\s+In\b') { throw 'Firewall rule missing or too broad' }
+          foreach ($f in 'Teacher\ClassroomControl.Teacher.exe','Student\ClassroomControl.Student.exe','docs\USER_MANUAL.md') { if (-not (Test-Path "$dir\$f")) { throw "Not installed: $f" } }
+          $menu = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Classroom Control"
+          foreach ($l in 'Classroom Control Teacher.lnk','Student Agent.lnk') { if (-not (Test-Path "$menu\$l")) { throw "Start Menu shortcut missing: $l" } }
+          if (-not (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run').'ClassroomControl.StudentAgent') { throw 'Startup entry missing' }
+          foreach ($r in $rules) {
+            $fw = netsh advfirewall firewall show rule name="$r" | Out-String
+            Write-Host $fw
+            if ($fw -notmatch 'LocalSubnet' -or $fw -notmatch 'Direction:\s+In\b' -or $fw -notmatch 'Allow') { throw "Firewall rule missing or too broad: $r" }
+          }
+          $tcp = netsh advfirewall firewall show rule name="ClassroomControl Teacher (TCP 39501 sessions, local subnet)" | Out-String
+          if ($tcp -notmatch '39501') { throw 'TCP rule does not name its port' }
 
           $un = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
           Start-Sleep -Seconds 3
-          if (Test-Path "$dir\ClassroomControl.StudentAgent.exe") { throw 'Application files were not removed' }
+          if (Test-Path "$dir\Student\ClassroomControl.Student.exe") { throw 'Application files were not removed' }
           if ((Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).'ClassroomControl.StudentAgent') { throw 'Startup entry was not removed' }
-          $fw = netsh advfirewall firewall show rule name="$rule" | Out-String
-          if ($fw -notmatch 'No rules match') { throw "Firewall rule was not removed: $fw" }
-          if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'ClassroomControl\StudentAgent\settings.json'))) { throw 'User data should be kept in silent uninstall without /DELETEUSERDATA' }
-          exit 0 # netsh returned 1 ("No rules match") which is the expected result after uninstall
+          foreach ($r in $rules) {
+            $fw = netsh advfirewall firewall show rule name="$r" | Out-String
+            if ($fw -notmatch 'No rules match') { throw "Firewall rule was not removed: $r" }
+          }
+          exit 0 # netsh returns 1 ("No rules match") after a clean uninstall
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: student-agent-win-x64
-          path: |
-            publish/
-            artifacts/ClassroomControl-Student-Setup.exe
-
-      - name: Publish binaries to the 'dist' branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/claude/elegant-archimedes-fsc61o'
+      - name: Install / uninstall test (Teacher-only and Student-only installers)
         shell: pwsh
         run: |
+          foreach ($e in @(@{ Setup = 'ClassroomControl-Teacher-Setup.exe'; Dir = 'ClassroomControl\Teacher'; Exe = 'ClassroomControl.Teacher.exe' }, @{ Setup = 'ClassroomControl-Student-Setup.exe'; Dir = 'ClassroomControl\StudentAgent'; Exe = 'ClassroomControl.Student.exe' })) {
+            $dir = Join-Path $env:ProgramFiles $e.Dir
+            $setup = Start-Process "artifacts\$($e.Setup)" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru
+            if ($setup.ExitCode -ne 0) { throw "$($e.Setup) exit code $($setup.ExitCode)" }
+            if (-not (Test-Path "$dir\$($e.Exe)")) { throw "$($e.Setup): not installed" }
+            Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+            Start-Sleep -Seconds 3
+            if (Test-Path "$dir\$($e.Exe)") { throw "$($e.Setup): not removed" }
+          }
+          exit 0
+
+      - name: Publish UI screenshots to the ci-ui branch
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path ci-out)) { exit 0 }
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          Copy-Item ci-out ci-ui-out -Recurse
+          git checkout --orphan ci-ui
+          git rm -rf --quiet .
+          Copy-Item ci-ui-out\* . -Recurse
+          git add -A
+          git commit -m "UI test output for ${{ github.sha }}"
+          git push -f origin ci-ui
+          exit 0
+
+      - name: Publish binaries to the dist branch (only when the commit message contains [dist])
+        if: contains(github.event.head_commit.message, '[dist]')
+        shell: pwsh
+        run: |
+          git checkout --force ${{ github.sha }}
           New-Item -ItemType Directory dist-out | Out-Null
-          Compress-Archive -Path publish\* -DestinationPath dist-out\ClassroomControl.StudentAgent-win-x64.zip
-          Copy-Item artifacts\ClassroomControl-Student-Setup.exe dist-out\
+          Compress-Archive -Path publish\teacher\* -DestinationPath dist-out\ClassroomControl.Teacher-win-x64.zip
+          Compress-Archive -Path publish\student\* -DestinationPath dist-out\ClassroomControl.Student-win-x64.zip
+          Copy-Item artifacts\*.exe dist-out\
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git checkout --orphan dist
           git rm -rf --quiet .
           Copy-Item dist-out\* . 
-          git add ClassroomControl.StudentAgent-win-x64.zip ClassroomControl-Student-Setup.exe
+          git add -A
           git commit -m "Binaries built from ${{ github.sha }}"
           git push -f origin dist

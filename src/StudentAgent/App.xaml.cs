@@ -46,8 +46,9 @@ namespace ClassroomControl.StudentAgent
             }
 
             // One agent per Windows user session: a second launch just brings the first window forward.
-            _instanceMutex = new Mutex(true, InstanceMutexName, out var isFirstInstance);
-            _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
+            var suffix = CommandLine.Parse(e.Args).DataDirectory is { } custom ? "." + Math.Abs(custom.GetHashCode()) : string.Empty;
+            _instanceMutex = new Mutex(true, InstanceMutexName + suffix, out var isFirstInstance);
+            _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName + suffix);
             if (!isFirstInstance)
             {
                 _showEvent.Set();
@@ -55,7 +56,8 @@ namespace ClassroomControl.StudentAgent
                 return;
             }
 
-            _paths = AppPaths.ForCurrentUser();
+            var cli = CommandLine.Parse(e.Args);
+            _paths = cli.DataDirectory is { } dataDirectory ? new AppPaths(dataDirectory) : AppPaths.ForCurrentUser();
             RegisterGlobalExceptionHandlers();
 
             try
@@ -74,6 +76,7 @@ namespace ClassroomControl.StudentAgent
         private void StartAgent(string[] args)
         {
             var paths = _paths!;
+            var cli = CommandLine.Parse(args);
             var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
             {
                 Args = args,
@@ -83,6 +86,11 @@ namespace ClassroomControl.StudentAgent
             builder.Logging.ClearProviders();
             builder.Logging.AddStudentAgentFileLogger(paths);
             builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName));
+            builder.Services.Configure<AgentOptions>(o =>
+            {
+                if (cli.AllowLoopback) o.AllowLoopbackTeacher = true;
+                if (cli.DiscoveryTarget is { } target) o.DiscoveryTargets = [target];
+            });
             // A failing background service must never take the whole agent down; AgentService supervises itself.
             builder.Services.Configure<HostOptions>(o => o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 
@@ -108,6 +116,19 @@ namespace ClassroomControl.StudentAgent
             settings.Load();
             if (args.Contains(StartupService.DisableAutostartArgument, StringComparer.OrdinalIgnoreCase))
                 Task.Run(() => settings.UpdateAsync(s => s.StartWithWindows = false)).GetAwaiter().GetResult();
+            if (cli.HasSettings)
+            {
+                // Unattended setup (installer scripts, lab images, CI): the same validation as the Settings window applies.
+                Task.Run(() => settings.UpdateAsync(s =>
+                {
+                    if (cli.ClassroomCode is { } code) s.ClassroomCode = code;
+                    if (cli.TeacherAddress is { } address) s.TeacherAddress = address;
+                    if (cli.TeacherPort is { } port) s.TeacherPort = port;
+                    if (cli.DiscoveryPort is { } discovery) s.DiscoveryPort = discovery;
+                    if (cli.StudentName is { } name) s.StudentName = name;
+                    if (cli.ComputerName is { } computer) s.ComputerName = computer;
+                })).GetAwaiter().GetResult();
+            }
             ApplyStartWithWindows(services.GetRequiredService<IStartupService>(), settings.Current.StartWithWindows);
 
             _host.Start();
@@ -202,6 +223,45 @@ namespace ClassroomControl.StudentAgent
                 _instanceMutex.Dispose();
             }
             base.OnExit(e);
+        }
+    }
+
+    /// <summary>Optional command-line switches for unattended deployment and automated tests. Everything is validated like normal settings.</summary>
+    internal sealed class CommandLine
+    {
+        public string? DataDirectory { get; private set; }
+        public string? ClassroomCode { get; private set; }
+        public string? TeacherAddress { get; private set; }
+        public int? TeacherPort { get; private set; }
+        public int? DiscoveryPort { get; private set; }
+        public string? StudentName { get; private set; }
+        public string? ComputerName { get; private set; }
+        public string? DiscoveryTarget { get; private set; }
+        public bool AllowLoopback { get; private set; }
+
+        public bool HasSettings => ClassroomCode is not null || TeacherAddress is not null || TeacherPort is not null || DiscoveryPort is not null
+            || StudentName is not null || ComputerName is not null;
+
+        public static CommandLine Parse(string[] args)
+        {
+            var o = new CommandLine();
+            string? Next(int i) => i + 1 < args.Length ? args[i + 1] : null;
+            for (var i = 0; i < args.Length; i++)
+            {
+                switch (args[i].ToLowerInvariant())
+                {
+                    case "--data-dir": o.DataDirectory = Next(i); break;
+                    case "--classroom-code": o.ClassroomCode = Next(i); break;
+                    case "--teacher-address": o.TeacherAddress = Next(i); break;
+                    case "--teacher-port": o.TeacherPort = int.TryParse(Next(i), out var tp) ? tp : null; break;
+                    case "--discovery-port": o.DiscoveryPort = int.TryParse(Next(i), out var dp) ? dp : null; break;
+                    case "--student-name": o.StudentName = Next(i); break;
+                    case "--computer-name": o.ComputerName = Next(i); break;
+                    case "--discovery-target": o.DiscoveryTarget = Next(i); break;
+                    case "--allow-loopback": o.AllowLoopback = true; break;
+                }
+            }
+            return o;
         }
     }
 }
