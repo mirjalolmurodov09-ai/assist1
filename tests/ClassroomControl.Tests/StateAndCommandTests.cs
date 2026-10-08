@@ -291,6 +291,19 @@ public sealed class RedactorTests
     }
 }
 
+public sealed class InstanceNameTests
+{
+    [Fact]
+    public void The_suffix_is_stable_and_distinguishes_data_directories()
+    {
+        Assert.Equal(string.Empty, InstanceName.For(null));
+        var a = InstanceName.For(Path.Combine(Path.GetTempPath(), "a"));
+        Assert.Equal(a, InstanceName.For(Path.Combine(Path.GetTempPath(), "a") + Path.DirectorySeparatorChar));
+        Assert.NotEqual(a, InstanceName.For(Path.Combine(Path.GetTempPath(), "b")));
+        Assert.Matches("^\\.[0-9A-F]{12}$", a);
+    }
+}
+
 public sealed class StartupServiceTests
 {
     private sealed class FakeStore : IRunKeyStore

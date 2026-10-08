@@ -31,7 +31,7 @@ namespace ClassroomControl.TeacherApp
             base.OnStartup(e);
             var options = StartupOptions.Parse(e.Args);
 
-            _instanceMutex = new Mutex(true, options.DataDirectory is null ? InstanceMutexName : InstanceMutexName + "." + Math.Abs(options.DataDirectory.GetHashCode()), out var first);
+            _instanceMutex = new Mutex(true, InstanceMutexName + InstanceName.For(options.DataDirectory), out var first);
             if (!first)
             {
                 MessageBox.Show(Loc.Instance["App.AlreadyRunning"], Loc.Instance["App.Name"], MessageBoxButton.OK, MessageBoxImage.Information);

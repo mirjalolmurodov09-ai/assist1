@@ -46,7 +46,7 @@ namespace ClassroomControl.StudentAgent
             }
 
             // One agent per Windows user session: a second launch just brings the first window forward.
-            var suffix = CommandLine.Parse(e.Args).DataDirectory is { } custom ? "." + Math.Abs(custom.GetHashCode()) : string.Empty;
+            var suffix = InstanceName.For(CommandLine.Parse(e.Args).DataDirectory);
             _instanceMutex = new Mutex(true, InstanceMutexName + suffix, out var isFirstInstance);
             _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName + suffix);
             if (!isFirstInstance)
