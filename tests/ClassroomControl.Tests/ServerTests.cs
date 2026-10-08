@@ -261,6 +261,36 @@ public sealed class ServerBehaviourTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_restarted_student_keeps_its_identity_and_approval()
+    {
+        var teacher = StartTeacher(o => o.Approval = ApprovalMode.Manual);
+        var dataDirectory = TestSupport.TempDir();
+        var first = new HeadlessAgent(new HeadlessAgentOptions
+        {
+            DataDirectory = dataDirectory, ClassroomCode = _code, ComputerName = "PC-01", StudentName = "Ali",
+            DiscoveryPort = teacher.DiscoveryPort, TeacherAddress = "127.0.0.1", TeacherPort = teacher.TcpPort,
+        });
+        await first.StartAsync();
+        Assert.True(await first.WaitForStateAsync(Models.ConnectionState.WaitingForApproval, Wait));
+        await teacher.ApproveAsync(first.DeviceId);
+        Assert.True(await first.WaitForStateAsync(Models.ConnectionState.Connected, Wait));
+        var deviceId = first.DeviceId;
+        await first.StopAsync(); // the student PC is switched off (agent stops, files stay)
+
+        var second = new HeadlessAgent(new HeadlessAgentOptions
+        {
+            DataDirectory = dataDirectory, ClassroomCode = _code, ComputerName = "PC-01", StudentName = "Ali",
+            DiscoveryPort = teacher.DiscoveryPort, TeacherAddress = "127.0.0.1", TeacherPort = teacher.TcpPort,
+        });
+        _disposables.Add(second);
+        _disposables.Add(first);
+        await second.StartAsync();
+        Assert.Equal(deviceId, second.DeviceId); // same Device ID after a restart
+        Assert.True(await second.WaitForStateAsync(Models.ConnectionState.Connected, Wait)); // no new approval needed
+        Assert.Single(teacher.Server.Devices);
+    }
+
+    [Fact]
     public async Task Removed_computer_must_be_approved_again()
     {
         var teacher = StartTeacher(o => o.Approval = ApprovalMode.Manual);

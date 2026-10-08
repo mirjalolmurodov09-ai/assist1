@@ -17,7 +17,7 @@ the source address is on a local subnet (private range), and the signature verif
 classroom code fail the signature and are ignored (reported as "Classroom code noto‘g‘ri.").
 
 ## Framing
-4-byte big-endian length + UTF-8 JSON `WireMessage` (`protocolVersion, type, sessionId, messageId, sequence, timestamp, payload(string), signature`). Max 256 KiB.
+4-byte big-endian length + UTF-8 JSON `WireMessage` (`protocolVersion, type, sessionId, messageId, sequence, timestamp, payload(string), signature`). Max 4 MiB.
 
 ## Authentication (inside TLS)
 1. Student → `HELLO {deviceId, agentVersion, protocolVersion, computerName, nonceS, timestamp}`
@@ -44,10 +44,20 @@ Receiver rejects: wrong session, bad signature, timestamp outside ±2 min, seque
 | `COMMAND_RESPONSE` `{commandId, deviceId, status, timestamp, errorCode, message, payload}` | S→T | |
 | `DISCONNECT` `{reason}` | both | |
 
-## Commands
-Implemented: `Ping`, `GetStatus`, `GetDeviceInfo`. Reserved (registered, never executed, answer `NotImplemented`):
-Lock, Unlock, Screenshot, StartApplication, StopApplication, Restart, Shutdown, StartScreenStream, StopScreenStream, StartRemoteControl, StopRemoteControl.
-A command runs only if: it arrived on the authenticated session (id, signature, timestamp, sequence verified), the device is `Approved`, the command is known, implemented and enabled.
+## Commands (COMMAND → COMMAND_RESPONSE)
+`Ping`, `GetStatus`, `GetDeviceInfo`, `Lock{message}`, `Unlock`, `SendMessage{text,title}`, `Screenshot` (response payload: JPEG base64), `StartScreenStream{fps,quality,maxWidth}`, `StopScreenStream`, `StartRemoteControl`, `StopRemoteControl`, `StartTeacherScreen{title}`, `StopTeacherScreen`, `Restart{delay}`, `Shutdown{delay}` (5–300 s warning), `StartApplication{target,arguments}`, `StopApplication{processName}`.
+A command runs only if: it arrived on the authenticated session (id, signature, timestamp, sequence verified), the device is `Approved`, the command is known and enabled on the Student. Rejections carry `ErrorCode` (`NOT_REGISTERED`, `UNKNOWN_COMMAND`, `COMMAND_DISABLED`, `INVALID_PARAMETERS`, …).
+
+## Streams (signed like every other session message)
+| Type | Direction | Payload |
+|---|---|---|
+| `SCREEN_FRAME` | S→T | `{sequence, fullWidth, fullHeight, x, y, width, height, keyFrame, format:"jpeg", imageBase64}` — the whole screen, or only the changed region; nothing is sent when nothing changed |
+| `TEACHER_SCREEN_FRAME` | T→S | same shape; only displayed after `StartTeacherScreen` |
+| `MOUSE_EVENT` | T→S | `{action: Move\|Down\|Up\|Wheel, x, y (0..1), button, wheelDelta}` — ignored unless remote control is active |
+| `KEYBOARD_EVENT` | T→S | `{virtualKey, isDown, isExtended}` — ignored unless remote control is active |
+| `STATUS_UPDATE` | S→T | `{locked, streaming, remoteControlActive, showingTeacherScreen, cpuPercent, ramTotalBytes, ramUsedBytes, pingMilliseconds}` every 5 s and on every change |
+
+Maximum frame size 4 MiB. The Teacher drops frames for a slow Student instead of queueing them.
 
 ## Versioning
 Same major version = compatible, the lower minor is negotiated. A different major gives:

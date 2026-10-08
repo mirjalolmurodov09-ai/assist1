@@ -310,6 +310,18 @@ public sealed class TeacherAppTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_message_to_everyone_reaches_every_online_computer()
+    {
+        var main = NewMain();
+        var agents = new[] { await AgentAsync("PC-01"), await AgentAsync("PC-02"), await AgentAsync("PC-03") };
+        Assert.True(await _teacher.WaitForAsync(() => main.OnlineCount == 3, Wait));
+        _dialogs.PromptAnswers.Enqueue("Hammaga: 5 daqiqadan keyin topshiriq");
+        await ((AsyncRelayCommand)main.MessageAllCommand).ExecuteAsync();
+        Assert.All(agents, a => Assert.Contains("5 daqiqadan", Assert.Single(a.Platform.Notifier.Shown).Text, StringComparison.Ordinal));
+        Assert.Contains("3/3", main.StatusMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Restart_and_shutdown_ask_for_confirmation_first()
     {
         var main = NewMain();
