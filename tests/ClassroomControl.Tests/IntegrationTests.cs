@@ -87,9 +87,9 @@ public sealed class IntegrationTests : IAsyncLifetime
         Assert.Equal("192.168.1.101", info.Payload!.Value.GetProperty("localIp").GetString());
         Assert.Equal("1.0.0", info.Payload!.Value.GetProperty("agentVersion").GetString());
 
-        // reserved commands exist but never run
-        var lockResult = await teacher.SendCommandAsync(agent.DeviceId, CommandNames.Lock);
-        Assert.Equal(CommandStatus.NotImplemented, lockResult.Status);
+        // stage-4 commands work too
+        Assert.Equal(CommandStatus.Success, (await teacher.SendCommandAsync(agent.DeviceId, CommandNames.Lock)).Status);
+        Assert.Equal(CommandStatus.Success, (await teacher.SendCommandAsync(agent.DeviceId, CommandNames.Unlock)).Status);
         var unknown = await teacher.SendCommandAsync(agent.DeviceId, "FormatDisk");
         Assert.Equal(ErrorCodes.UnknownCommand, unknown.ErrorCode);
 
