@@ -1,0 +1,24 @@
+2026-10-08 06:45:02.850Z [INF] SettingsService: Device ID created.
+2026-10-08 06:45:02.923Z [INF] AgentService: Agent Started
+2026-10-08 06:45:02.977Z [INF] DiscoveryService: Discovery Started
+2026-10-08 06:45:02.986Z [INF] ConnectionService: Connection Started to 127.0.0.1:39701
+2026-10-08 06:45:03.014Z [INF] Lifetime: Application started. Press Ctrl+C to shut down.
+2026-10-08 06:45:03.014Z [INF] Lifetime: Hosting environment: Production
+2026-10-08 06:45:03.015Z [INF] Lifetime: Content root path: D:\a\assist1\assist1\publish\student\
+2026-10-08 06:45:03.148Z [INF] AuthenticationService: Authentication Started
+2026-10-08 06:45:03.259Z [INF] AuthenticationService: Authentication Success (registration Pending)
+2026-10-08 06:45:03.259Z [INF] AuthenticationService: Registration Request sent to Teacher
+2026-10-08 06:45:03.260Z [INF] AgentService: Waiting for Teacher approval.
+2026-10-08 06:45:03.288Z [INF] AgentService: Registration Approved
+2026-10-08 06:45:03.310Z [INF] ScreenStreamService: Screen stream started (3 fps, q50, 480px).
+2026-10-08 06:45:03.574Z [INF] ScreenStreamService: Screen stream stopped.
+2026-10-08 06:45:03.574Z [INF] ScreenStreamService: Screen stream started (3 fps, q50, 480px).
+2026-10-08 06:45:05.755Z [INF] RemoteInputService: Remote control started.
+2026-10-08 06:45:06.577Z [INF] RemoteInputService: Remote control stopped.
+2026-10-08 06:45:06.740Z [INF] TeacherScreenService: Teacher screen is shown.
+2026-10-08 06:45:09.639Z [INF] TeacherScreenService: Teacher screen closed.
+2026-10-08 06:45:09.709Z [INF] WindowsSystemControl: Application started on the Teacher's request: notepad.exe
+2026-10-08 06:45:11.257Z [INF] WindowsSystemControl: 1 process(es) of notepad stopped on the Teacher's request.
+2026-10-08 06:45:20.103Z [INF] ScreenStreamService: Screen stream stopped.
+2026-10-08 06:45:20.108Z [WRN] AgentService: Connection Lost (ConnectionLost).
+2026-10-08 06:45:20.112Z [INF] AgentService: Reconnect Started (attempt 1, in 1s)

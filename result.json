@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "steps": [
+    {
+      "step": "devices connected",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "ping",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "device info",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "screenshot (real GDI capture \u002B JPEG)",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "monitoring frames arrive",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "message window",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "lock \u002B unlock",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "remote control (real SendInput, harmless move)",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "teacher screen sharing",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "start \u002B stop application (real process)",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "status update carries CPU/RAM",
+      "ok": true,
+      "note": ""
+    }
+  ]
+}

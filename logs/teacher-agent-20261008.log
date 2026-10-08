@@ -1,0 +1,28 @@
+2026-10-08 06:44:56.943Z [INF] ClassroomServer: Classroom code changed |  | OK | 
+2026-10-08 06:44:56.993Z [INF] ClassroomServer: Server started |  | OK | TCP 39701, UDP 39700
+2026-10-08 06:44:57.700Z [INF] Teacher: Teacher started.
+2026-10-08 06:45:03.223Z [INF] ClassroomServer: Registration request | CI-PC-1 | Pending | Student: CI-Student-1, IP: 10.1.0.25
+2026-10-08 06:45:03.231Z [INF] ClassroomServer: Registration request | CI-PC-2 | Pending | Student: CI-Student-2, IP: 10.1.0.25
+2026-10-08 06:45:03.243Z [INF] ClassroomServer: Computer connected | CI-PC-1 | Pending | IP: 10.1.0.25
+2026-10-08 06:45:03.263Z [INF] ClassroomServer: Computer approved | CI-PC-1 | OK | 
+2026-10-08 06:45:03.291Z [INF] ClassroomServer: Computer approved | CI-PC-2 | OK | 
+2026-10-08 06:45:03.336Z [INF] ClassroomServer: StartScreenStream | CI-PC-1 | OK | Streaming started
+2026-10-08 06:45:03.393Z [INF] ClassroomServer: Computer connected | CI-PC-2 | Pending | IP: 10.1.0.25
+2026-10-08 06:45:03.396Z [INF] ClassroomServer: StartScreenStream | CI-PC-2 | OK | Streaming started
+2026-10-08 06:45:03.454Z [INF] ClassroomServer: Ping | CI-PC-1 | OK | Pong
+2026-10-08 06:45:03.496Z [INF] ClassroomServer: GetDeviceInfo | CI-PC-1 | OK | Device info retrieved
+2026-10-08 06:45:03.547Z [INF] ClassroomServer: Screenshot | CI-PC-1 | OK | Screenshot taken
+2026-10-08 06:45:03.576Z [INF] ClassroomServer: StartScreenStream | CI-PC-2 | OK | Streaming started
+2026-10-08 06:45:03.736Z [INF] ClassroomServer: StartScreenStream | CI-PC-1 | OK | Streaming started
+2026-10-08 06:45:04.183Z [INF] ClassroomServer: SendMessage | CI-PC-1 | OK | Message shown
+2026-10-08 06:45:04.216Z [INF] ClassroomServer: Lock | CI-PC-1 | OK | Locked
+2026-10-08 06:45:05.737Z [INF] ClassroomServer: Unlock | CI-PC-1 | OK | Unlocked
+2026-10-08 06:45:05.757Z [INF] ClassroomServer: StartRemoteControl | CI-PC-1 | OK | Remote control active
+2026-10-08 06:45:06.581Z [INF] ClassroomServer: StopRemoteControl | CI-PC-1 | OK | Remote control stopped
+2026-10-08 06:45:06.748Z [INF] ClassroomServer: StartTeacherScreen | CI-PC-1 | OK | Teacher screen shown
+2026-10-08 06:45:06.895Z [INF] ClassroomServer: StartTeacherScreen | CI-PC-2 | OK | Teacher screen shown
+2026-10-08 06:45:09.641Z [INF] ClassroomServer: StopTeacherScreen | CI-PC-1 | OK | Teacher screen closed
+2026-10-08 06:45:09.661Z [INF] ClassroomServer: StopTeacherScreen | CI-PC-2 | OK | Teacher screen closed
+2026-10-08 06:45:09.711Z [INF] ClassroomServer: StartApplication | CI-PC-1 | OK | Application started
+2026-10-08 06:45:11.260Z [INF] ClassroomServer: StopApplication | CI-PC-1 | OK | 1 process stopped
+2026-10-08 06:45:20.101Z [INF] ClassroomServer: Computer disconnected | CI-PC-1 | Offline | Teacher stopped
