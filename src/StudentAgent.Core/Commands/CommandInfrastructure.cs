@@ -31,18 +31,6 @@ public static class CommandResults
         new(commandId, deviceId, status, DateTimeOffset.UtcNow, code, message, null);
 }
 
-/// <summary>Reserved command (Lock, Screenshot, ...). Safe placeholder: it only reports that it is not available yet.</summary>
-public sealed class ReservedCommandHandler : ICommandHandler
-{
-    public ReservedCommandHandler(string name) => Name = name;
-    public string Name { get; }
-    public bool IsImplemented => false;
-
-    public Task<CommandResult> ExecuteAsync(CommandContext context, CancellationToken cancellationToken) =>
-        Task.FromResult(CommandResults.Error(context.CommandId, context.DeviceId, CommandStatus.NotImplemented,
-            ErrorCodes.CommandNotImplemented, $"'{Name}' buyrug'i bu versiyada qo'llab-quvvatlanmaydi."));
-}
-
 public interface ICommandDispatcher
 {
     Task<CommandResult> DispatchAsync(CommandRequest request, SessionContext session, CancellationToken cancellationToken);
@@ -86,7 +74,7 @@ public sealed partial class CommandDispatcher : ICommandDispatcher
             return CommandResults.Error(commandId, session.DeviceId, CommandStatus.Rejected, ErrorCodes.UnknownCommand, "Noma'lum buyruq.");
         }
         if (!handler.IsImplemented)
-            return await handler.ExecuteAsync(new CommandContext(commandId, session.DeviceId, session.SessionId, request.Parameters), cancellationToken).ConfigureAwait(false);
+            return CommandResults.Error(commandId, session.DeviceId, CommandStatus.NotImplemented, ErrorCodes.CommandNotImplemented, $"'{handler.Name}' buyrug‘i bu versiyada qo‘llab-quvvatlanmaydi.");
         if (!_enabled.Contains(handler.Name))
             return CommandResults.Error(commandId, session.DeviceId, CommandStatus.Rejected, ErrorCodes.CommandDisabled, "Bu buyruq o'chirib qo'yilgan.");
 

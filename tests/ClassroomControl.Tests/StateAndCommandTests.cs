@@ -129,7 +129,7 @@ public sealed class CommandTests
             new PingCommandHandler(time), new GetStatusCommandHandler(store, device, time), new GetDeviceInfoCommandHandler(device, store),
             new ThrowingHandler(),
         };
-        handlers.AddRange(CommandNames.Reserved.Select(n => new ReservedCommandHandler(n)));
+        handlers.Add(new PlaceholderHandler());
         return new CommandDispatcher(handlers, Options.Create(new AgentOptions
         {
             EnabledCommands = enabled.Length == 0 ? [CommandNames.Ping, CommandNames.GetStatus, CommandNames.GetDeviceInfo, "Boom"] : enabled,
@@ -187,21 +187,10 @@ public sealed class CommandTests
         Assert.Equal(ErrorCodes.UnknownCommand, r.ErrorCode);
     }
 
-    [Theory]
-    [InlineData(CommandNames.Lock)]
-    [InlineData(CommandNames.Unlock)]
-    [InlineData(CommandNames.Screenshot)]
-    [InlineData(CommandNames.StartApplication)]
-    [InlineData(CommandNames.StopApplication)]
-    [InlineData(CommandNames.Restart)]
-    [InlineData(CommandNames.Shutdown)]
-    [InlineData(CommandNames.StartScreenStream)]
-    [InlineData(CommandNames.StopScreenStream)]
-    [InlineData(CommandNames.StartRemoteControl)]
-    [InlineData(CommandNames.StopRemoteControl)]
-    public async Task Reserved_commands_never_execute(string name)
+    [Fact]
+    public async Task A_handler_that_is_not_implemented_never_executes()
     {
-        var r = await Dispatcher(CommandNames.Ping, name).DispatchAsync(new CommandRequest("1", name, null), Approved, default);
+        var r = await Dispatcher("Placeholder").DispatchAsync(new CommandRequest("1", "Placeholder", null), Approved, default);
         Assert.Equal(CommandStatus.NotImplemented, r.Status);
         Assert.Equal(ErrorCodes.CommandNotImplemented, r.ErrorCode);
     }
@@ -232,6 +221,13 @@ public sealed class CommandTests
         Assert.Equal(CommandStatus.Failed, r.Status);
         Assert.Equal(ErrorCodes.CommandFailed, r.ErrorCode);
         Assert.DoesNotContain("secret-internal-detail", r.Message, StringComparison.Ordinal);
+    }
+
+    private sealed class PlaceholderHandler : ICommandHandler
+    {
+        public string Name => "Placeholder";
+        public bool IsImplemented => false;
+        public Task<CommandResult> ExecuteAsync(CommandContext context, CancellationToken cancellationToken) => throw new InvalidOperationException("must not run");
     }
 
     private sealed class ThrowingHandler : ICommandHandler

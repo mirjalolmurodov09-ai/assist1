@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using ClassroomControl.StudentAgent.Commands;
+using ClassroomControl.StudentAgent.Features;
 using ClassroomControl.Shared.Communication.Messages;
 using ClassroomControl.Shared.Communication.Protocol;
 using ClassroomControl.Shared.Communication.Security;
@@ -24,15 +25,28 @@ public sealed class SessionRunner : ISessionRunner
     private readonly IHeartbeatService _heartbeat;
     private readonly ICommandDispatcher _commands;
     private readonly IDeviceInfoService _device;
+    private readonly IActiveSession _active;
+    private readonly IFeatureCoordinator _features;
+    private readonly IRemoteInputService _remote;
+    private readonly ITeacherScreenService _teacherScreen;
+    private readonly IPingTracker _ping;
+    private readonly StatusReporter _status;
     private readonly TimeProvider _time;
     private readonly ILogger<SessionRunner> _logger;
 
-    public SessionRunner(IHeartbeatService heartbeat, ICommandDispatcher commands, IDeviceInfoService device,
+    public SessionRunner(IHeartbeatService heartbeat, ICommandDispatcher commands, IDeviceInfoService device, IActiveSession active,
+        IFeatureCoordinator features, IRemoteInputService remote, ITeacherScreenService teacherScreen, IPingTracker ping, StatusReporter status,
         TimeProvider time, ILogger<SessionRunner> logger)
     {
         _heartbeat = heartbeat;
         _commands = commands;
         _device = device;
+        _active = active;
+        _features = features;
+        _remote = remote;
+        _teacherScreen = teacherScreen;
+        _ping = ping;
+        _status = status;
         _time = time;
         _logger = logger;
     }
@@ -44,6 +58,13 @@ public sealed class SessionRunner : ISessionRunner
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var deviceId = _device.DeviceId;
 
+        _active.Attach(session.Channel);
+        _features.OnSessionStarted(session.Policy);
+        var statusTask = Guard(async () =>
+        {
+            await _status.RunAsync(session.Channel, linked.Token).ConfigureAwait(false);
+            return new SessionEnd(SessionEndReason.Cancelled);
+        }, linked.Token);
         var receive = Guard(() => ReceiveLoopAsync(session, deviceId, () => registration, r => registration = r.Registration,
             onRegistrationChanged, () => Interlocked.Exchange(ref lastReceivedTicks, _time.GetUtcNow().UtcTicks), linked.Token), linked.Token);
         var heartbeat = Guard(async () =>
@@ -53,10 +74,12 @@ public sealed class SessionRunner : ISessionRunner
             return new SessionEnd(SessionEndReason.Cancelled);
         }, linked.Token);
 
-        var first = await Task.WhenAny(receive, heartbeat).ConfigureAwait(false);
+        var first = await Task.WhenAny(receive, heartbeat, statusTask).ConfigureAwait(false);
         var end = await first.ConfigureAwait(false);
         await linked.CancelAsync().ConfigureAwait(false);
-        await Task.WhenAll(receive, heartbeat).ConfigureAwait(false);
+        await Task.WhenAll(receive, heartbeat, statusTask).ConfigureAwait(false);
+        _active.Detach();
+        await _features.OnSessionEndedAsync().ConfigureAwait(false);
 
         if (end.Reason == SessionEndReason.Cancelled || cancellationToken.IsCancellationRequested)
         {
@@ -78,6 +101,19 @@ public sealed class SessionRunner : ISessionRunner
             switch (message.Type)
             {
                 case MessageTypes.HeartbeatAck:
+                    _ping.AckReceived();
+                    break;
+
+                case MessageTypes.MouseEvent:
+                    _remote.Handle(MessageSerializer.Deserialize<MouseEventMessage>(message.Payload));
+                    break;
+
+                case MessageTypes.KeyboardEvent:
+                    _remote.Handle(MessageSerializer.Deserialize<KeyboardEventMessage>(message.Payload));
+                    break;
+
+                case MessageTypes.TeacherScreenFrame:
+                    _teacherScreen.Handle(MessageSerializer.Deserialize<ScreenFrameMessage>(message.Payload));
                     break;
 
                 case MessageTypes.RegistrationUpdate:

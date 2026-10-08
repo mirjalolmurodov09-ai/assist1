@@ -2,6 +2,7 @@ using ClassroomControl.Shared.Communication.Messages;
 using ClassroomControl.Shared.Communication.Protocol;
 using ClassroomControl.Shared.Communication.Security;
 using ClassroomControl.StudentAgent.Infrastructure.Helpers;
+using ClassroomControl.StudentAgent.Features;
 using Microsoft.Extensions.Options;
 
 namespace ClassroomControl.StudentAgent.Services;
@@ -22,11 +23,13 @@ public sealed class HeartbeatService : IHeartbeatService
 {
     private readonly AgentOptions _options;
     private readonly TimeProvider _time;
+    private readonly IPingTracker _ping;
 
-    public HeartbeatService(IOptions<AgentOptions> options, TimeProvider time)
+    public HeartbeatService(IOptions<AgentOptions> options, TimeProvider time, IPingTracker ping)
     {
         _options = options.Value;
         _time = time;
+        _ping = ping;
     }
 
     public async Task RunAsync(SecureChannel channel, string deviceId, Func<string> status, Func<DateTimeOffset> lastReceived, CancellationToken cancellationToken)
@@ -38,6 +41,7 @@ public sealed class HeartbeatService : IHeartbeatService
             var silence = now - lastReceived();
             if (silence > _options.HeartbeatTimeout) throw new HeartbeatTimeoutException(silence);
 
+            _ping.HeartbeatSent();
             await channel.SendAsync(MessageTypes.Heartbeat,
                 new HeartbeatMessage(deviceId, channel.SessionId, now.ToUnixTimeMilliseconds(), status()), cancellationToken).ConfigureAwait(false);
         }

@@ -21,7 +21,7 @@ public sealed class AgentOptions
     public int[] ReconnectDelaysSeconds { get; set; } = [1, 2, 5, 10, 20, 30];
 
     /// <summary>Only the commands listed here may run (all others are rejected as disabled).</summary>
-    public string[] EnabledCommands { get; set; } = [CommandNames.Ping, CommandNames.GetStatus, CommandNames.GetDeviceInfo];
+    public string[] EnabledCommands { get; set; } = [.. CommandNames.All];
 
     /// <summary>Test/lab only: accept a Teacher on the loopback interface. Off in production.</summary>
     public bool AllowLoopbackTeacher { get; set; }

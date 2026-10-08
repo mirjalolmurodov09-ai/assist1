@@ -26,7 +26,4 @@ public static class CommandNames
         Ping, GetStatus, GetDeviceInfo, Lock, Unlock, Screenshot, StartApplication, StopApplication, Restart, Shutdown,
         StartScreenStream, StopScreenStream, StartRemoteControl, StopRemoteControl, SendMessage, StartTeacherScreen, StopTeacherScreen,
     ];
-
-    /// <summary>Commands without a dedicated handler yet.</summary>
-    public static readonly string[] Reserved = [.. All.Where(n => n is not (Ping or GetStatus or GetDeviceInfo))];
 }

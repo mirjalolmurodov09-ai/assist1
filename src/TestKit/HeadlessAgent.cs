@@ -45,6 +45,8 @@ public sealed class HeadlessAgent : IAsyncDisposable
             if (options.WriteLogFile) b.AddStudentAgentFileLogger(paths);
         });
         services.AddStudentAgentCore(paths, new AesFileSecretProtector(paths.KeyFile));
+        Platform = new FakePlatform();
+        Platform.Register(services);
         options.ConfigureServices?.Invoke(services);
         services.Configure<AgentOptions>(o =>
         {
@@ -76,6 +78,7 @@ public sealed class HeadlessAgent : IAsyncDisposable
     }
 
     public HeadlessAgentOptions Options { get; }
+    public FakePlatform Platform { get; }
     public IServiceProvider Services => _provider;
     public IAgentStatusStore Status => _provider.GetRequiredService<IAgentStatusStore>();
     public ISettingsService Settings => _provider.GetRequiredService<ISettingsService>();

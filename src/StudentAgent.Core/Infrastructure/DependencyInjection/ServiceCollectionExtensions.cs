@@ -1,4 +1,5 @@
 using ClassroomControl.StudentAgent.Commands;
+using ClassroomControl.StudentAgent.Features;
 using ClassroomControl.Shared.Communication.Security;
 using ClassroomControl.StudentAgent.Infrastructure.Helpers;
 using ClassroomControl.Infrastructure.Logging;
@@ -41,8 +42,28 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICommandHandler, PingCommandHandler>();
         services.AddSingleton<ICommandHandler, GetStatusCommandHandler>();
         services.AddSingleton<ICommandHandler, GetDeviceInfoCommandHandler>();
-        foreach (var name in CommandNames.Reserved)
-            services.AddSingleton<ICommandHandler>(new ReservedCommandHandler(name));
+        services.AddSingleton<FeatureState>();
+        services.AddSingleton<IActiveSession, ActiveSession>();
+        services.AddSingleton<IPingTracker, PingTracker>();
+        services.AddSingleton<StatusReporter>();
+        services.AddSingleton<IScreenStreamService, ScreenStreamService>();
+        services.AddSingleton<IRemoteInputService, RemoteInputService>();
+        services.AddSingleton<ITeacherScreenService, TeacherScreenService>();
+        services.AddSingleton<IFeatureCoordinator, FeatureCoordinator>();
+        services.AddSingleton<ICommandHandler, LockCommandHandler>();
+        services.AddSingleton<ICommandHandler, UnlockCommandHandler>();
+        services.AddSingleton<ICommandHandler, SendMessageCommandHandler>();
+        services.AddSingleton<ICommandHandler, ScreenshotCommandHandler>();
+        services.AddSingleton<ICommandHandler, StartScreenStreamCommandHandler>();
+        services.AddSingleton<ICommandHandler, StopScreenStreamCommandHandler>();
+        services.AddSingleton<ICommandHandler, StartRemoteControlCommandHandler>();
+        services.AddSingleton<ICommandHandler, StopRemoteControlCommandHandler>();
+        services.AddSingleton<ICommandHandler, StartTeacherScreenCommandHandler>();
+        services.AddSingleton<ICommandHandler, StopTeacherScreenCommandHandler>();
+        services.AddSingleton<ICommandHandler, RestartCommandHandler>();
+        services.AddSingleton<ICommandHandler, ShutdownCommandHandler>();
+        services.AddSingleton<ICommandHandler, StartApplicationCommandHandler>();
+        services.AddSingleton<ICommandHandler, StopApplicationCommandHandler>();
         services.AddSingleton<ICommandDispatcher, CommandDispatcher>();
 
         services.AddSingleton<AgentService>();
