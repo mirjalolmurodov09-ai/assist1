@@ -1,4 +1,4 @@
-<Window x:Class="ClassroomControl.TeacherApp.Views.MainWindow"
+<Window Style="{DynamicResource {x:Type Window}}" x:Class="ClassroomControl.TeacherApp.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:l="clr-namespace:ClassroomControl.TeacherApp"
@@ -87,6 +87,7 @@
 
         <!-- top bar -->
         <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="14,10">
+            <StackPanel>
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Content="{l:Loc Top.LockAll}" Command="{Binding LockAllCommand}" Margin="0,0,6,0" />
@@ -99,8 +100,9 @@
                     <Button Content="{l:Loc Top.Settings}" Command="{Binding SettingsCommand}" Margin="0,0,6,0" />
                     <Button Content="{l:Loc Top.About}" Command="{Binding AboutCommand}" Margin="0" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{l:Loc App.Name}" Style="{StaticResource Heading}" Margin="0,0,16,0" />
+                <TextBlock Text="{l:Loc App.Name}" Style="{StaticResource Heading}" Margin="0,0,16,0" VerticalAlignment="Center" />
+            </DockPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                     <TextBlock Text="{l:Loc Top.Classroom}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding ClassroomName}" FontWeight="SemiBold" Margin="4,0,16,0" VerticalAlignment="Center" />
                     <TextBlock Text="{l:Loc Top.Connected}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
@@ -113,7 +115,7 @@
                     <TextBlock Text="{Binding TeacherUser}" FontWeight="SemiBold" Margin="4,0,6,0" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding TeacherStatus}" Foreground="{DynamicResource OnlineBrush}" VerticalAlignment="Center" />
                 </StackPanel>
-            </DockPanel>
+            </StackPanel>
         </Border>
 
         <!-- pending approval banner -->

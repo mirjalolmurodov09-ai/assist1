@@ -11,6 +11,7 @@ namespace ClassroomControl.TeacherApp.Views
         public PromptWindow(string title, string label, string initial, bool multiline)
         {
             Title = title;
+            SetResourceReference(StyleProperty, typeof(Window));
             Width = 480;
             SizeToContent = SizeToContent.Height;
             ResizeMode = ResizeMode.NoResize;
