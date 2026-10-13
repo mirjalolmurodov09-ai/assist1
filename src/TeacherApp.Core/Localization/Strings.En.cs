@@ -202,5 +202,13 @@ internal static partial class Strings
         ["Shots.Delete"] = "Delete",
         ["Shots.DeleteTitle"] = "Delete screenshot",
         ["Shots.DeleteConfirm"] = "Delete the screenshot and its file?",
+        ["Login.Forgot"] = "Forgot the password? Close this window and start the application with “Reset administrator password” (Windows administrator rights are required).",
+        ["Recover.Title"] = "Reset administrator password",
+        ["Recover.Text"] = "Choose the account and set a new password. The action is recorded in the audit log.",
+        ["Recover.User"] = "Account",
+        ["Recover.NewPassword"] = "New password",
+        ["Recover.Done"] = "The password was changed. Start the application and sign in with the new password.",
+        ["Recover.NoUsers"] = "There are no accounts yet. Start the application normally to create the administrator.",
+        ["Recover.NeedAdmin"] = "Windows administrator rights are required to reset the password.",
     };
 }

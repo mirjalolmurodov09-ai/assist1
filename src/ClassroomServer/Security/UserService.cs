@@ -114,6 +114,18 @@ public sealed class UserService
         _store.UpdatePassword(userId, PasswordHasher.Hash(newPassword));
     }
 
+    /// <summary>Local recovery of a forgotten password. The caller (the Teacher app) must already have verified that the operating
+    /// system user is an administrator of this computer. The account is re-enabled, its lockout cleared and the action audited.</summary>
+    public void RecoverPassword(long userId, string newPassword, string operatingSystemUser)
+    {
+        var user = _store.ListUsers().FirstOrDefault(u => u.Id == userId) ?? throw new UserException("Foydalanuvchi topilmadi.");
+        EnsurePasswordStrength(newPassword);
+        _store.UpdatePassword(userId, PasswordHasher.Hash(newPassword));
+        if (user.Disabled) _store.SetUserDisabled(userId, false);
+        lock (_gate) _failures.Remove(user.Username);
+        _store.AddLog(_time.GetUtcNow(), "Windows:" + operatingSystemUser, string.Empty, "RecoverPassword", "OK", user.Username);
+    }
+
     public void SetDisabled(long userId, bool disabled)
     {
         EnsureNotLastAdmin(userId);

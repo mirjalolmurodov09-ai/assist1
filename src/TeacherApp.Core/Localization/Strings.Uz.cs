@@ -202,5 +202,13 @@ internal static partial class Strings
         ["Shots.Delete"] = "O‘chirish",
         ["Shots.DeleteTitle"] = "Skrinshotni o‘chirish",
         ["Shots.DeleteConfirm"] = "Skrinshot va uning fayli o‘chirilsinmi?",
+        ["Login.Forgot"] = "Parolni unutdingizmi? Bu oynani yoping va dasturni “Administrator parolini tiklash” rejimida ishga tushiring (Windows administrator huquqi kerak).",
+        ["Recover.Title"] = "Administrator parolini tiklash",
+        ["Recover.Text"] = "Hisobni tanlang va yangi parol kiriting. Bu amal jurnalga yoziladi.",
+        ["Recover.User"] = "Hisob",
+        ["Recover.NewPassword"] = "Yangi parol",
+        ["Recover.Done"] = "Parol o‘zgartirildi. Dasturni ishga tushirib, yangi parol bilan kiring.",
+        ["Recover.NoUsers"] = "Hali hisob yo‘q. Administrator yaratish uchun dasturni oddiy ishga tushiring.",
+        ["Recover.NeedAdmin"] = "Parolni tiklash uchun Windows administrator huquqi kerak.",
     };
 }

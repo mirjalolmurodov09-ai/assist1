@@ -31,6 +31,13 @@ namespace ClassroomControl.TeacherApp
             base.OnStartup(e);
             var options = StartupOptions.Parse(e.Args);
 
+            if (options.RecoverAdmin && !IsElevated())
+            {
+                RelaunchElevated(e.Args);
+                Shutdown();
+                return;
+            }
+
             _instanceMutex = new Mutex(true, InstanceMutexName + InstanceName.For(options.DataDirectory), out var first);
             if (!first)
             {
@@ -63,6 +70,13 @@ namespace ClassroomControl.TeacherApp
                 if (options.Language is { } language) Loc.Instance.Language = language;
                 if (options.ClassroomCode is { } code) _runtime.Server.SetClassroomCode(code);
 
+                if (options.RecoverAdmin)
+                {
+                    RecoverAdminPassword();
+                    Shutdown();
+                    return;
+                }
+
                 if (!SignIn(options)) { Shutdown(); return; }
 
                 _runtime.Start();
@@ -87,6 +101,40 @@ namespace ClassroomControl.TeacherApp
                 MessageBox.Show(Loc.Instance["Error.Unexpected"] + Environment.NewLine + ex.Message, Loc.Instance["App.Name"], MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(1);
             }
+        }
+
+        private static bool IsElevated()
+        {
+            if (!OperatingSystem.IsWindows()) return false;
+            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            return new System.Security.Principal.WindowsPrincipal(identity).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+
+        /// <summary>Asks Windows (UAC) to start this program again with administrator rights; the user sees and confirms the prompt.</summary>
+        private static void RelaunchElevated(string[] args)
+        {
+            try
+            {
+                var info = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!, string.Join(' ', args.Select(a => '"' + a + '"')))
+                {
+                    UseShellExecute = true,
+                    Verb = "runas",
+                };
+                System.Diagnostics.Process.Start(info);
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                MessageBox.Show(Loc.Instance["Recover.NeedAdmin"], Loc.Instance["App.Name"], MessageBoxButton.OK, MessageBoxImage.Warning); // UAC prompt declined
+            }
+        }
+
+        private void RecoverAdminPassword()
+        {
+            var windowsUser = Environment.UserDomainName + "\\" + Environment.UserName;
+            _logger?.LogWarning("Administrator password recovery started by {User}.", windowsUser);
+            var window = new RecoverPasswordWindow(new RecoverPasswordViewModel(_runtime!.Users, windowsUser));
+            if (window.ShowDialog() == true)
+                MessageBox.Show(Loc.Instance["Recover.Done"], Loc.Instance["Recover.Title"], MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private bool SignIn(StartupOptions options)
@@ -180,6 +228,7 @@ namespace ClassroomControl.TeacherApp
         public string? ClassroomCode { get; private set; }
         public string? Language { get; private set; }
         public bool AllowLoopback { get; private set; }
+        public bool RecoverAdmin { get; private set; }
         public int ExpectedComputers { get; private set; } = 1;
         public int TcpPort { get; private set; }
         public int DiscoveryPort { get; private set; }
@@ -197,6 +246,7 @@ namespace ClassroomControl.TeacherApp
                     case "--classroom-code": o.ClassroomCode = Next(i); break;
                     case "--language": o.Language = Next(i); break;
                     case "--allow-loopback": o.AllowLoopback = true; break;
+                    case "--recover-admin": o.RecoverAdmin = true; break;
                     case "--expect": o.ExpectedComputers = int.TryParse(Next(i), out var n) ? n : 1; break;
                     case "--tcp-port": o.TcpPort = int.TryParse(Next(i), out var t) ? t : 0; break;
                     case "--discovery-port": o.DiscoveryPort = int.TryParse(Next(i), out var d) ? d : 0; break;

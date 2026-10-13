@@ -625,6 +625,30 @@ public sealed class TeacherAppTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Forgotten_administrator_password_can_be_reset_locally_and_is_audited()
+    {
+        var users = new UserService(Srv.Store, TimeProvider.System);
+        var admin = users.Create("direktor", "Eski-Parol-123", Roles.Admin);
+        users.SetDisabled(users.Create("ikkinchi", "Boshqa-Parol-1", Roles.Admin).Id, true);
+        for (var i = 0; i < UserService.MaxFailedAttempts; i++) Assert.Null(users.Authenticate("direktor", "xato-parol"));
+        Assert.True(users.IsLockedOut("direktor"));
+
+        var vm = new RecoverPasswordViewModel(users, "PC\\Admin");
+        Assert.Equal("direktor", vm.Users[0].Username);
+        vm.Selected = vm.Users.First(u => u.Username == "direktor");
+        Assert.False(vm.TryReset("Yangi-Parol-456", "boshqa"));
+        Assert.False(vm.TryReset("qisqa", "qisqa"));
+        Assert.True(vm.TryReset("Yangi-Parol-456", "Yangi-Parol-456"));
+
+        Assert.False(users.IsLockedOut("direktor"));
+        Assert.Null(users.Authenticate("direktor", "Eski-Parol-123"));
+        Assert.NotNull(users.Authenticate("direktor", "Yangi-Parol-456"));
+        Assert.Contains(Srv.Store.QueryLogs(50), e => e.Action == "RecoverPassword" && e.Details == "direktor" && e.Teacher.StartsWith("Windows:"));
+        Assert.DoesNotContain(Srv.Store.QueryLogs(50), e => $"{e.Details}{e.Result}".Contains("Yangi-Parol"));
+        Assert.Equal(admin.Id, vm.Selected!.Id);
+    }
+
+    [Fact]
     public async Task Logs_view_shows_and_filters_the_audit_trail()
     {
         var a = await AgentAsync("PC-01");

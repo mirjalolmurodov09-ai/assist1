@@ -74,3 +74,59 @@ public sealed class SetupAdminViewModel : ObservableObject
         }
     }
 }
+
+/// <summary>Reset of a forgotten administrator/teacher password. Only reachable from an elevated (Windows administrator) process.</summary>
+public sealed class RecoverPasswordViewModel : ObservableObject
+{
+    private readonly UserService _users;
+    private readonly string _operatingSystemUser;
+    private UserRecord? _selected;
+    private string _error = string.Empty;
+
+    public RecoverPasswordViewModel(UserService users, string operatingSystemUser)
+    {
+        _users = users;
+        _operatingSystemUser = operatingSystemUser;
+        Users = users.List().OrderBy(u => u.Role != Roles.Admin).ThenBy(u => u.Username, StringComparer.OrdinalIgnoreCase).ToList();
+        _selected = Users.FirstOrDefault();
+    }
+
+    public IReadOnlyList<UserRecord> Users { get; }
+
+    public UserRecord? Selected
+    {
+        get => _selected;
+        set => Set(ref _selected, value);
+    }
+
+    public string Error
+    {
+        get => _error;
+        private set => Set(ref _error, value);
+    }
+
+    public bool TryReset(string password, string confirm)
+    {
+        if (Selected is null)
+        {
+            Error = Loc.Instance["Recover.NoUsers"];
+            return false;
+        }
+        if (password != confirm)
+        {
+            Error = Loc.Instance["Setup.Mismatch"];
+            return false;
+        }
+        try
+        {
+            _users.RecoverPassword(Selected.Id, password, _operatingSystemUser);
+            Error = string.Empty;
+            return true;
+        }
+        catch (UserException ex)
+        {
+            Error = ex.Message;
+            return false;
+        }
+    }
+}

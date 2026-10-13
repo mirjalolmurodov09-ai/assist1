@@ -11,6 +11,7 @@
         <TextBlock Text="{l:Loc Login.Password}" />
         <PasswordBox x:Name="Password" Margin="0,4,0,10" />
         <TextBlock Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" MinHeight="18" />
+        <TextBlock Text="{l:Loc Login.Forgot}" Style="{StaticResource Muted}" TextWrapping="Wrap" FontSize="11" Margin="0,10,0,0" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
             <Button Content="{l:Loc Login.Button}" IsDefault="True" Click="Login_Click" Style="{StaticResource PrimaryButton}" MinWidth="100" Margin="0,0,8,0" />
             <Button Content="{l:Loc Login.Exit}" IsCancel="True" MinWidth="90" Margin="0" />

@@ -108,11 +108,13 @@ Source: "..\docs\NETWORK.md"; DestDir: "{app}\docs"; Flags: ignoreversion
 #if Edition == "Teacher"
 Name: "{group}\Classroom Control Teacher"; Filename: "{app}\{#TeacherExe}"
 Name: "{autodesktop}\Classroom Control Teacher"; Filename: "{app}\{#TeacherExe}"; Tasks: desktopicon
+Name: "{group}\Reset administrator password"; Filename: "{app}\{#TeacherExe}"; Parameters: "--recover-admin"
 #elif Edition == "Student"
 Name: "{group}\Student Agent"; Filename: "{app}\{#StudentExe}"
 Name: "{autodesktop}\Student Agent"; Filename: "{app}\{#StudentExe}"; Tasks: desktopicon
 #else
 Name: "{group}\Classroom Control Teacher"; Filename: "{app}\Teacher\{#TeacherExe}"; Components: teacher
+Name: "{group}\Reset administrator password"; Filename: "{app}\Teacher\{#TeacherExe}"; Parameters: "--recover-admin"; Components: teacher
 Name: "{group}\Student Agent"; Filename: "{app}\Student\{#StudentExe}"; Components: student
 Name: "{autodesktop}\Classroom Control Teacher"; Filename: "{app}\Teacher\{#TeacherExe}"; Tasks: desktopicon; Components: teacher
 Name: "{autodesktop}\Student Agent"; Filename: "{app}\Student\{#StudentExe}"; Tasks: desktopicon; Components: student
