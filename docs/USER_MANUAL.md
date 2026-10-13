@@ -30,6 +30,11 @@ O‘quvchi sinf kodini kiritgach kompyuter **Tasdiq kutayotganlar** ro‘yxatiga
 ### Sozlamalar
 *Umumiy* (sinf nomi, **sinf kodi** — yangilash/qo‘lda kiritish, til: O‘zbekcha/English/Русский, qorong‘i rejim), *Tarmoq* (portlar, lokal IP), *Xavfsizlik* (Agent faol bo‘lishi, avtomatik blok ochish, Teacher sertifikati, foydalanuvchilar), *Kuzatuv*, *Ekran sifati*, *Guruhlar*, *Student Agentlar*, *Loglar* (qidiruv bilan).
 
+**Parolni unutdim.** Eski parolni ko‘rib bo‘lmaydi (u faqat hash ko‘rinishida saqlanadi), lekin uni shu kompyuterda tiklash mumkin:
+Start menyusidan **Reset administrator password** yorlig‘ini oching (yoki `ClassroomControl.Teacher.exe --recover-admin`), Windows so‘ragan ruxsatni (UAC) tasdiqlang,
+ro‘yxatdan hisobni tanlang (login nomlari shu yerda ko‘rinadi) va yangi parolni ikki marta kiriting. Bu faqat shu kompyuterda Windows administratori huquqi bilan ishlaydi,
+bloklangan hisobni ham qayta yoqadi va amal audit jurnaliga yoziladi (parol yozilmaydi).
+
 ## B. O‘quvchi (Student Agent)
 1. Dastur o‘zi ishga tushadi (tray’da yashil/sariq/qizil nuqta). Birinchi marta **sinf kodi** va ismingizni kiriting → **Connect**.
 2. Holatlar: 🟡 *Connecting…* → "Waiting for Teacher approval" → 🟢 *Connected / Registered*. 🔴 *Offline* bo‘lsa dastur o‘zi qayta urinadi (1, 2, 5, 10, 20, 30 soniya …).
