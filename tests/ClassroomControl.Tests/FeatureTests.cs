@@ -83,36 +83,57 @@ public sealed class FrameDifferTests
 
 public sealed class AdaptiveQualityTests
 {
+    private static TimeSpan Ms(double ms) => TimeSpan.FromMilliseconds(ms);
+
     [Fact]
-    public void Slow_frames_lower_quality_then_size_then_rate()
+    public void A_slow_link_lowers_quality_then_size_but_never_below_the_floor()
     {
         var a = new AdaptiveQuality(10, 70, 1280);
-        for (var i = 0; i < 6; i++) a.Report(TimeSpan.FromMilliseconds(500));
-        Assert.Equal(AdaptiveQuality.MinQuality, a.Quality);
-        for (var i = 0; i < 12; i++) a.Report(TimeSpan.FromMilliseconds(500));
-        Assert.True(a.MaxWidth < 1280);
-        for (var i = 0; i < 60; i++) a.Report(TimeSpan.FromMilliseconds(5000));
-        Assert.Equal(AdaptiveQuality.MinWidth, a.MaxWidth);
+        for (var i = 0; i < 6; i++) a.Report(Ms(500), Ms(500));
+        Assert.True(a.Quality >= AdaptiveQuality.MinQuality && a.Quality < 70);
+        for (var i = 0; i < 100; i++) a.Report(Ms(5000), Ms(5000));
+        Assert.True(a.MaxWidth >= (int)(1280 * 0.7) - 1, "the picture must not shrink to a blur");
+        Assert.True(a.Quality >= AdaptiveQuality.MinQuality);
         Assert.Equal(1, a.Fps);
         Assert.True(a.Degraded);
     }
 
     [Fact]
-    public void A_fast_link_restores_the_requested_settings()
+    public void A_slow_computer_only_lowers_the_frame_rate_not_the_picture()
+    {
+        var a = new AdaptiveQuality(15, 70, 1280);
+        for (var i = 0; i < 60; i++) a.Report(Ms(120), Ms(2)); // capture + encode are slow, sending is instant
+        Assert.Equal((70, 1280), (a.Quality, a.MaxWidth));
+        Assert.True(a.Fps < 15);
+        Assert.True(a.Fps >= AdaptiveQuality.MinFps);
+    }
+
+    [Fact]
+    public void Recovery_restores_the_requested_settings()
     {
         var a = new AdaptiveQuality(10, 70, 1280);
-        for (var i = 0; i < 30; i++) a.Report(TimeSpan.FromMilliseconds(500));
+        for (var i = 0; i < 30; i++) a.Report(Ms(500), Ms(500));
         Assert.True(a.Degraded);
-        for (var i = 0; i < 400; i++) a.Report(TimeSpan.FromMilliseconds(1));
+        for (var i = 0; i < 400; i++) a.Report(Ms(1), Ms(1));
         Assert.False(a.Degraded);
         Assert.Equal((10, 70, 1280), (a.Fps, a.Quality, a.MaxWidth));
+    }
+
+    [Fact]
+    public void A_computer_that_keeps_up_at_a_lower_rate_gets_its_rate_back()
+    {
+        var a = new AdaptiveQuality(15, 70, 1280);
+        for (var i = 0; i < 40; i++) a.Report(Ms(120), Ms(2));
+        Assert.True(a.Fps < 15);
+        for (var i = 0; i < 200; i++) a.Report(Ms(20), Ms(2));
+        Assert.Equal(15, a.Fps);
     }
 
     [Fact]
     public void Healthy_links_are_never_degraded()
     {
         var a = new AdaptiveQuality(5, 50, 480);
-        for (var i = 0; i < 100; i++) a.Report(TimeSpan.FromMilliseconds(40));
+        for (var i = 0; i < 100; i++) a.Report(Ms(40), Ms(10));
         Assert.False(a.Degraded);
     }
 }

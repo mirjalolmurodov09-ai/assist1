@@ -122,9 +122,10 @@ public sealed class ScreenStreamService : IScreenStreamService, IAsyncDisposable
                 var jpeg = await Task.Run(() => _encoder.Encode(raw, diff.Region, adaptive.Quality), ct).ConfigureAwait(false);
                 var frame = new ScreenFrameMessage(++sequence, raw.Width, raw.Height, diff.Region.X, diff.Region.Y, diff.Region.Width, diff.Region.Height,
                     diff.KeyFrame, _encoder.Format, Convert.ToBase64String(jpeg));
+                var sendStarted = Stopwatch.GetTimestamp();
                 if (!await _session.TrySendAsync(MessageTypes.ScreenFrame, frame, ct).ConfigureAwait(false)) break;
 
-                adaptive.Report(Stopwatch.GetElapsedTime(started));
+                adaptive.Report(Stopwatch.GetElapsedTime(started), Stopwatch.GetElapsedTime(sendStarted));
                 if (adaptive.Fps != currentFps)
                 {
                     currentFps = adaptive.Fps;

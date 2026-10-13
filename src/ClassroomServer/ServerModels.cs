@@ -78,8 +78,8 @@ public sealed class ServerSettings
     public int MonitoringQuality { get => Int(nameof(MonitoringQuality), 50, 10, 95); set => Set(nameof(MonitoringQuality), value); }
     public int MonitoringMaxWidth { get => Int(nameof(MonitoringMaxWidth), 480, 160, 1920); set => Set(nameof(MonitoringMaxWidth), value); }
     public int FullScreenFps { get => Int(nameof(FullScreenFps), 15, 1, 30); set => Set(nameof(FullScreenFps), value); }
-    public int FullScreenQuality { get => Int(nameof(FullScreenQuality), 70, 10, 95); set => Set(nameof(FullScreenQuality), value); }
-    public int FullScreenMaxWidth { get => Int(nameof(FullScreenMaxWidth), 1280, 320, 3840); set => Set(nameof(FullScreenMaxWidth), value); }
+    public int FullScreenQuality { get => Int(nameof(FullScreenQuality), 80, 10, 95); set => Set(nameof(FullScreenQuality), value); }
+    public int FullScreenMaxWidth { get => Int(nameof(FullScreenMaxWidth), 1920, 320, 3840); set => Set(nameof(FullScreenMaxWidth), value); }
     public int TeacherScreenFps { get => Int(nameof(TeacherScreenFps), 8, 1, 30); set => Set(nameof(TeacherScreenFps), value); }
     public int TeacherScreenQuality { get => Int(nameof(TeacherScreenQuality), 60, 10, 95); set => Set(nameof(TeacherScreenQuality), value); }
     public int TeacherScreenMaxWidth { get => Int(nameof(TeacherScreenMaxWidth), 1280, 320, 3840); set => Set(nameof(TeacherScreenMaxWidth), value); }
