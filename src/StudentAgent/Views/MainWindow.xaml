@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="clr-namespace:ClassroomControl.StudentAgent.Models;assembly=ClassroomControl.StudentAgent.Core"
         Title="{DynamicResource Str.WindowTitle}"
-        Width="460" Height="620" MinWidth="420" MinHeight="560"
+        Width="460" Height="760" MinWidth="420" MinHeight="700"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -84,6 +84,18 @@
                         <TextBlock DockPanel.Dock="Left" Width="130" Style="{StaticResource Label}" Text="{DynamicResource Str.Teacher}" />
                         <TextBlock Style="{StaticResource Value}" Text="{Binding TeacherName}" />
                     </DockPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="{DynamicResource Str.Files}">
+                <StackPanel>
+                    <TextBlock Text="{Binding FileStatusText}" TextWrapping="Wrap" />
+                    <ProgressBar Height="8" Margin="0,6,0,0" Minimum="0" Maximum="100" Value="{Binding FilePercent, Mode=OneWay}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="{DynamicResource Str.SendFile}" Command="{Binding SendFileCommand}" Margin="0,0,8,0" />
+                        <Button Content="{DynamicResource Str.Cancel}" Command="{Binding CancelFileCommand}" Margin="0,0,8,0" />
+                        <Button Content="{DynamicResource Str.OpenReceived}" Command="{Binding OpenReceivedFolderCommand}" />
+                    </StackPanel>
                 </StackPanel>
             </GroupBox>
 

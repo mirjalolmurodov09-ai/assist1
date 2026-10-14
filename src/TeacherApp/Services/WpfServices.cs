@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
@@ -84,7 +86,7 @@ namespace ClassroomControl.TeacherApp.Services
         private readonly MonitoringService _monitoring;
         private readonly IUiDispatcher _ui;
         private readonly IThemeService _theme;
-        private Window? _settings, _shots, _add, _about;
+        private Window? _settings, _shots, _add, _about, _files;
 
         public DialogService(Server server, UserService users, TeacherSession session, MonitoringService monitoring, IUiDispatcher ui, IThemeService theme)
         {
@@ -124,6 +126,15 @@ namespace ClassroomControl.TeacherApp.Services
         public void ShowScreenshots() => ShowSingle(ref _shots, () => new ScreenshotHistoryWindow(new ScreenshotHistoryViewModel(_server, this)), _ => { });
         public void ShowAbout() => ShowSingle(ref _about, () => new AboutWindow(), _ => { });
         public void ShowAddComputer() => ShowSingle(ref _add, () => new AddComputerWindow(new AddComputerViewModel(_server, _ui)), _ => { });
+
+        public void ShowFiles(FileTransferViewModel files) => ShowSingle(ref _files, () => new FilesWindow(files), _ => { });
+
+        public Task<IReadOnlyList<string>> PickFilesAsync(string title)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = title, CheckFileExists = true, Multiselect = true };
+            IReadOnlyList<string> chosen = dialog.ShowDialog(Owner) == true ? dialog.FileNames : Array.Empty<string>();
+            return Task.FromResult(chosen);
+        }
 
         private static void ShowSingle(ref Window? slot, Func<Window> create, Action<Window> reuse)
         {

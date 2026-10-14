@@ -14,7 +14,10 @@ public interface IDialogService
     void ShowScreenshots();
     void ShowAbout();
     void ShowAddComputer();
+    void ShowFiles(ViewModels.FileTransferViewModel files);
     void OpenFile(string path);
+    /// <summary>Lets the teacher choose one or more files; empty when cancelled.</summary>
+    Task<IReadOnlyList<string>> PickFilesAsync(string title);
 }
 
 /// <summary>Who is signed in. The name goes to the audit log for every action.</summary>

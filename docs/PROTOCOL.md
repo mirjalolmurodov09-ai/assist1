@@ -59,6 +59,22 @@ A command runs only if: it arrived on the authenticated session (id, signature, 
 
 Maximum frame size 4 MiB. The Teacher drops frames for a slow Student instead of queueing them.
 
+## File transfer (both directions, same messages)
+A file goes over the same authenticated session; the receiving side decides. Nothing here lets one side ask for a file of the other: an offer can only *place* a file in the receiver's fixed receive folder.
+
+| Type | Direction | Payload |
+|---|---|---|
+| `FILE_OFFER` | sender→receiver | `{transferId, fileName, size, sha256}` |
+| `FILE_REPLY` | receiver→sender | `{transferId, accepted, errorCode, message}` |
+| `FILE_CHUNK` | sender→receiver | `{transferId, index, dataBase64}` — 192 KiB of raw data per chunk, strictly in order from 0 |
+| `FILE_END` | sender→receiver | `{transferId, chunkCount}` |
+| `FILE_RESULT` | receiver→sender | `{transferId, success, errorCode, message, savedName}` — sent after size and SHA-256 were verified (or when the receiver aborts) |
+| `FILE_CANCEL` | sender→receiver | `{transferId, reason}` |
+
+Flow: `OFFER → REPLY(accepted) → CHUNK* → END → RESULT`. Any receiver-side problem aborts with `FILE_RESULT{success:false}`; the sender stops sending at once.
+Receiver rules (checked in this order): valid transfer id; size ≤ limit (`FILE_TOO_LARGE`); file type not blocked (`FILE_TYPE_BLOCKED`); well-formed digest; at most 3 transfers at once (`TOO_MANY_TRANSFERS`); enough free disk space (`FILE_NO_SPACE`). Chunks must arrive in order and never exceed the announced size; a stalled transfer is dropped after 60 s. Error codes: `FILE_REJECTED`, `FILE_TOO_LARGE`, `FILE_TYPE_BLOCKED`, `FILE_NO_SPACE`, `FILE_CORRUPT`, `FILE_CANCELLED`, `FILE_NOT_FOUND`, `TOO_MANY_TRANSFERS`, `TRANSFER_TIMEOUT`, `CONNECTION_LOST`.
+Only `Approved` computers take part. Each message is signed like every other session message; chunks stay far below the 4 MiB frame limit.
+
 ## Versioning
 Same major version = compatible, the lower minor is negotiated. A different major gives:
 "Teacher protocol versiyasi (X) bu Student Agent (1.0) bilan mos emas. Dasturni yangilang."

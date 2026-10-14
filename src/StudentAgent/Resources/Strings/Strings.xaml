@@ -16,6 +16,9 @@
     <sys:String x:Key="Str.ClassroomCode">Classroom code:</sys:String>
     <sys:String x:Key="Str.StudentName">Student name:</sys:String>
     <sys:String x:Key="Str.Connect">Connect</sys:String>
+    <sys:String x:Key="Str.Files">Files</sys:String>
+    <sys:String x:Key="Str.SendFile">Send a file to the teacher...</sys:String>
+    <sys:String x:Key="Str.OpenReceived">Received files</sys:String>
     <sys:String x:Key="Str.Settings">Settings</sys:String>
     <sys:String x:Key="Str.Save">Save</sys:String>
     <sys:String x:Key="Str.Cancel">Cancel</sys:String>

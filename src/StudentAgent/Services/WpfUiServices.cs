@@ -55,6 +55,35 @@ namespace ClassroomControl.StudentAgent.Services
             Present(_registration);
         });
 
+        public string? PickFileToSend()
+        {
+            string? chosen = null;
+            OnUi(() =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = (string)Application.Current.FindResource("Str.SendFile"),
+                    CheckFileExists = true,
+                    Multiselect = false,
+                };
+                if (dialog.ShowDialog() == true) chosen = dialog.FileName;
+            });
+            return chosen;
+        }
+
+        public void OpenFolder(string path)
+        {
+            try
+            {
+                System.IO.Directory.CreateDirectory(path);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+            }
+            catch (Exception ex) when (ex is System.IO.IOException or System.ComponentModel.Win32Exception or UnauthorizedAccessException or InvalidOperationException)
+            {
+                MessageBox.Show(ex.Message, (string)Application.Current.FindResource("Str.WindowTitle"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
         private static void Present(Window window)
         {
             if (!window.IsVisible) window.Show();

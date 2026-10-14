@@ -25,6 +25,7 @@ internal sealed class DeviceConnection
     public RecordingChannel? Recorder { get; }
     public ConcurrentDictionary<string, TaskCompletionSource<CommandResult>> Pending { get; } = new();
     public volatile StatusUpdateMessage? Status;
+    public Shared.Files.FileTransferCoordinator? Files { get; set; }
     public RegistrationState Registration { get; set; }
     public string DisconnectReason { get; set; } = "Connection closed";
 

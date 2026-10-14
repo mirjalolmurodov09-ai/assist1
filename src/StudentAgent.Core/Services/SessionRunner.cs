@@ -30,13 +30,14 @@ public sealed class SessionRunner : ISessionRunner
     private readonly IRemoteInputService _remote;
     private readonly ITeacherScreenService _teacherScreen;
     private readonly IPingTracker _ping;
+    private readonly IFileTransferService _files;
     private readonly StatusReporter _status;
     private readonly TimeProvider _time;
     private readonly ILogger<SessionRunner> _logger;
 
     public SessionRunner(IHeartbeatService heartbeat, ICommandDispatcher commands, IDeviceInfoService device, IActiveSession active,
         IFeatureCoordinator features, IRemoteInputService remote, ITeacherScreenService teacherScreen, IPingTracker ping, StatusReporter status,
-        TimeProvider time, ILogger<SessionRunner> logger)
+        IFileTransferService files, TimeProvider time, ILogger<SessionRunner> logger)
     {
         _heartbeat = heartbeat;
         _commands = commands;
@@ -47,6 +48,7 @@ public sealed class SessionRunner : ISessionRunner
         _teacherScreen = teacherScreen;
         _ping = ping;
         _status = status;
+        _files = files;
         _time = time;
         _logger = logger;
     }
@@ -59,6 +61,7 @@ public sealed class SessionRunner : ISessionRunner
         var deviceId = _device.DeviceId;
 
         _active.Attach(session.Channel);
+        _files.OnSessionStarted(session.Channel, registration);
         _features.OnSessionStarted(session.Policy);
         var statusTask = Guard(async () =>
         {
@@ -79,6 +82,7 @@ public sealed class SessionRunner : ISessionRunner
         await linked.CancelAsync().ConfigureAwait(false);
         await Task.WhenAll(receive, heartbeat, statusTask).ConfigureAwait(false);
         _active.Detach();
+        _files.OnSessionEnded();
         await _features.OnSessionEndedAsync().ConfigureAwait(false);
 
         if (end.Reason == SessionEndReason.Cancelled || cancellationToken.IsCancellationRequested)
@@ -119,9 +123,19 @@ public sealed class SessionRunner : ISessionRunner
                 case MessageTypes.RegistrationUpdate:
                     var update = MessageSerializer.Deserialize<RegistrationUpdateMessage>(message.Payload);
                     setRegistration(update);
+                    _files.OnRegistrationChanged(update.Registration);
                     notify(update);
                     if (update.Registration == RegistrationState.Rejected)
                         return new SessionEnd(SessionEndReason.Rejected, update.Message);
+                    break;
+
+                case MessageTypes.FileOffer:
+                case MessageTypes.FileReply:
+                case MessageTypes.FileChunk:
+                case MessageTypes.FileEnd:
+                case MessageTypes.FileCancel:
+                case MessageTypes.FileResult:
+                    await _files.HandleAsync(message, ct).ConfigureAwait(false);
                     break;
 
                 case MessageTypes.Command:

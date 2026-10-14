@@ -491,7 +491,7 @@ public sealed class FeatureIntegrationTests : IAsyncLifetime
         Assert.Equal(["notepad"], state.BlockedApplications);
         Assert.True(await t.WaitForAsync(() => a.Platform.System.StopCalls >= 2, Wait), "the blocked name must be enforced repeatedly");
         var main = new ViewModels.MainViewModel(a.Services.GetRequiredService<Services.IAgentStatusStore>(), a.Services.GetRequiredService<Services.IDeviceInfoService>(),
-            a.Settings, new ImmediateDispatcher(), new NoWindows(), state);
+            a.Settings, new ImmediateDispatcher(), new NoWindows(), state, a.Services.GetRequiredService<IFileTransferService>());
         Assert.Contains("notepad", main.ActivityText, StringComparison.Ordinal);
         Assert.True(await t.WaitForAsync(() => t.Server.GetDevice(a.DeviceId)!.Status?.BlockedApplications == 1, Wait));
 
@@ -526,6 +526,8 @@ public sealed class FeatureIntegrationTests : IAsyncLifetime
         public void ShowMain() { }
         public void ShowSettings(bool aboutTab = false) { }
         public void ShowRegistration() { }
+        public string? PickFileToSend() => null;
+        public void OpenFolder(string path) { }
     }
 
     [Fact]

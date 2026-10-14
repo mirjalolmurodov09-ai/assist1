@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.RegularExpressions;
 using ClassroomControl.ClassroomServer;
 using ClassroomControl.ClassroomServer.Security;
@@ -117,6 +118,10 @@ internal sealed class FakeDialogs : IDialogService
     public void ShowScreenshots() => Screenshots++;
     public void ShowAbout() => Abouts++;
     public void ShowAddComputer() => AddComputers++;
+    public int FilesOpened;
+    public void ShowFiles(FileTransferViewModel files) => FilesOpened++;
+    public Queue<IReadOnlyList<string>> PickedFiles { get; } = new();
+    public Task<IReadOnlyList<string>> PickFilesAsync(string title) => Task.FromResult(PickedFiles.Count > 0 ? PickedFiles.Dequeue() : Array.Empty<string>());
     public void OpenFile(string path) => OpenedFile = path;
 }
 
@@ -534,6 +539,123 @@ public sealed class TeacherAppTests : IAsyncLifetime
         Assert.True(await _teacher.WaitForAsync(() => add.Pending.FirstOrDefault() is { } first && (add.Selected = first) is not null, Wait));
         await ((AsyncRelayCommand)add.ApproveCommand).ExecuteAsync();
         Assert.True(await _teacher.WaitForAsync(() => add.Pending.Count == 0, Wait));
+    }
+
+    private static string TempFile(string name, int bytes)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "cc-vm-files-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, name);
+        var data = new byte[bytes];
+        new Random(3).NextBytes(data);
+        File.WriteAllBytes(path, data);
+        return path;
+    }
+
+    [Fact]
+    public async Task Files_are_sent_to_the_selected_computers_and_shown_in_the_transfer_list()
+    {
+        var main = NewMain();
+        var a = await AgentAsync("PC-01");
+        var b = await AgentAsync("PC-02");
+        Assert.True(await _teacher.WaitForAsync(() => main.Computers.Count == 2, Wait));
+        main.SelectOnly(main.Find(a.DeviceId)!);
+        var source = TempFile("vazifa.txt", 300_000);
+        _dialogs.PickedFiles.Enqueue([source]);
+
+        await ((AsyncRelayCommand)main.Files.SendToSelectedCommand).ExecuteAsync();
+
+        var inbox = a.Services.GetRequiredService<ClassroomControl.Infrastructure.IAppPaths>().ReceivedFilesDirectory;
+        Assert.Equal(File.ReadAllBytes(source), File.ReadAllBytes(Path.Combine(inbox, "vazifa.txt")));
+        Assert.False(File.Exists(Path.Combine(b.Services.GetRequiredService<ClassroomControl.Infrastructure.IAppPaths>().ReceivedFilesDirectory, "vazifa.txt")), "only the selected computer gets the file");
+        Assert.Contains(main.Files.Items, i => i.IsSending && i.IsCompleted && i.FileName == "vazifa.txt" && i.Percent == 100);
+        Assert.Equal(Loc.Instance.Format("Files.Done", 1, 1), main.Files.StatusMessage);
+
+        main.Files.ClearFinishedCommand.Execute(null);
+        Assert.Empty(main.Files.Items);
+        Assert.False(main.Files.HasItems);
+    }
+
+    [Fact]
+    public async Task Sending_to_everyone_online_reaches_all_and_cancel_is_only_enabled_while_sending()
+    {
+        var main = NewMain();
+        var agents = new[] { await AgentAsync("PC-01"), await AgentAsync("PC-02") };
+        _dialogs.PickedFiles.Enqueue([TempFile("hammaga.txt", 1000), TempFile("ikkinchi.txt", 2000)]);
+        Assert.False(main.Files.CancelCommand.CanExecute(null));
+
+        await ((AsyncRelayCommand)main.Files.SendToAllCommand).ExecuteAsync();
+
+        foreach (var agent in agents)
+        {
+            var inbox = agent.Services.GetRequiredService<ClassroomControl.Infrastructure.IAppPaths>().ReceivedFilesDirectory;
+            Assert.True(File.Exists(Path.Combine(inbox, "hammaga.txt")));
+            Assert.True(File.Exists(Path.Combine(inbox, "ikkinchi.txt")));
+        }
+        Assert.Equal(Loc.Instance.Format("Files.Done", 4, 4), main.Files.StatusMessage);
+        Assert.False(main.Files.IsSending);
+    }
+
+    [Fact]
+    public async Task Sending_without_a_target_or_without_a_choice_does_nothing()
+    {
+        var main = NewMain();
+        await AgentAsync("PC-01");
+        await ((AsyncRelayCommand)main.Files.SendToSelectedCommand).ExecuteAsync(); // nothing selected
+        Assert.Equal(Loc.Instance["Error.NoTarget"], main.Files.StatusMessage);
+        await ((AsyncRelayCommand)main.Files.SendToGroupCommand).ExecuteAsync(); // "all computers" is not a group
+        Assert.Equal(Loc.Instance["Error.NoGroup"], main.Files.StatusMessage);
+
+        main.SelectAll();
+        await ((AsyncRelayCommand)main.Files.SendToSelectedCommand).ExecuteAsync(); // the dialog is cancelled
+        Assert.Empty(main.Files.Items);
+    }
+
+    [Fact]
+    public async Task A_file_from_a_student_is_listed_announced_and_can_be_opened()
+    {
+        var main = NewMain();
+        var agent = await AgentAsync("PC-01");
+        Assert.True(await _teacher.WaitForAsync(() => main.Computers.Count == 1, Wait));
+        var source = TempFile("javob.pdf", 50_000);
+
+        var result = await agent.Services.GetRequiredService<ClassroomControl.StudentAgent.Features.IFileTransferService>().SendToTeacherAsync(source, CancellationToken.None);
+        Assert.Equal(ClassroomControl.Shared.Files.TransferState.Completed, result.State);
+
+        Assert.True(await _teacher.WaitForAsync(() => main.Files.Items.Any(i => !i.IsSending && i.IsCompleted), Wait));
+        var item = main.Files.Items.Single(i => !i.IsSending);
+        Assert.True(item.CanOpen);
+        Assert.Equal(File.ReadAllBytes(source), File.ReadAllBytes(item.StoredPath!));
+        Assert.Contains("javob.pdf", main.StatusMessage);
+        item.OpenCommand.Execute(null);
+        Assert.Equal(Path.GetDirectoryName(item.StoredPath), _dialogs.OpenedFile);
+    }
+
+    [Fact]
+    public async Task File_settings_are_stored_and_enforced_and_failures_are_explained_in_the_current_language()
+    {
+        var main = NewMain();
+        var agent = await AgentAsync("PC-01");
+        main.SelectAll();
+
+        main.Files.MaxSizeText = "1";
+        main.Files.MaxSizeText = "abc"; // ignored
+        Assert.Equal(1, Srv.Settings.MaxFileSizeMb);
+        main.Files.AcceptFromStudents = false;
+        main.Files.AllowPrograms = true;
+        Assert.False(Srv.Settings.AcceptFilesFromStudents);
+        Assert.True(Srv.Settings.AllowExecutableFiles);
+
+        _dialogs.PickedFiles.Enqueue([TempFile("katta.bin", 1024 * 1024 + 5)]);
+        await ((AsyncRelayCommand)main.Files.SendToSelectedCommand).ExecuteAsync();
+        var failed = main.Files.Items.Single();
+        Assert.True(failed.IsFailed);
+        Assert.Contains(Loc.Instance["Files.ErrTooLarge"], failed.StatusText);
+        Assert.Equal(Loc.Instance.Format("Files.Done", 0, 1), main.Files.StatusMessage);
+        Loc.Instance.Language = Loc.English;
+        failed.RefreshLanguage();
+        Assert.Contains("too large", failed.StatusText);
+        Assert.NotNull(agent);
     }
 
     [Fact]

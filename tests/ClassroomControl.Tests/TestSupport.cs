@@ -86,3 +86,27 @@ internal sealed class MemoryChannelPair
         }
     }
 }
+
+/// <summary>File service stand-in for view-model tests: records what was sent and lets the test publish progress.</summary>
+internal sealed class FakeFileTransferService : ClassroomControl.StudentAgent.Features.IFileTransferService
+{
+    public event Action<ClassroomControl.Shared.Files.TransferProgress>? Progress;
+    public string ReceiveFolder { get; set; } = "/tmp/received";
+    public bool CanSend { get; set; } = true;
+    public List<string> Sent { get; } = [];
+    public IReadOnlyList<ClassroomControl.Shared.Files.TransferProgress> Recent => [];
+    public void OnSessionStarted(ClassroomControl.Shared.Communication.Security.SecureChannel channel, ClassroomControl.Shared.Models.RegistrationState registration) { }
+    public void OnRegistrationChanged(ClassroomControl.Shared.Models.RegistrationState registration) { }
+    public void OnSessionEnded() { }
+    public Task HandleAsync(ClassroomControl.Shared.Communication.Security.VerifiedMessage message, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task<ClassroomControl.Shared.Files.TransferProgress> SendToTeacherAsync(string filePath, CancellationToken cancellationToken)
+    {
+        Sent.Add(filePath);
+        var done = new ClassroomControl.Shared.Files.TransferProgress("t", ClassroomControl.Shared.Files.TransferDirection.Sending, Path.GetFileName(filePath), 10, 10, ClassroomControl.Shared.Files.TransferState.Completed);
+        Publish(done);
+        return Task.FromResult(done);
+    }
+
+    public void Publish(ClassroomControl.Shared.Files.TransferProgress progress) => Progress?.Invoke(progress);
+}

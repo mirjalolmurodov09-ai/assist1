@@ -17,6 +17,17 @@ Maqsad: faqat ruxsat etilgan lokal sinf tarmog‘ida, ochiq (o‘quvchi ko‘rib
 | Shaffoflik | Ekran kuzatuvi, bloklash, masofadan boshqaruv, o‘qituvchi ekrani — o‘quvchi oynasida va tray’da ko‘rinadi; boshqaruv paytida qizil chiziq. Teacher ulanishi uzilsa hammasi to‘xtaydi; blok 30 s da (sozlanadi) o‘zi ochiladi. |
 | Imtiyoz | Ikkala dastur `asInvoker`. Admin faqat installerda. Student startup — HKCU Run (foydalanuvchi ko‘radi va o‘chira oladi). Yashirin jarayon, watchdog, o‘zini qayta tiklash **yo‘q**. |
 
+### Fayl uzatish (ikki tomonlama)
+| Qoida | Qanday |
+|---|---|
+| Faqat tasdiqlangan kompyuter | `Pending` kompyuter fayl yubora ham, qabul qila ham olmaydi. Xabarlar shu autentifikatsiyalangan, imzolangan sessiya ichida. |
+| Boshqa tomonning fayllari o‘qilmaydi | Protokolda "menga X faylni yubor" so‘rovi **yo‘q**. Taklif faqat qabul qiluvchining qat’iy qabul papkasiga fayl **qo‘yishi** mumkin. O‘quvchi faqat o‘zi tanlagan faylni yuboradi. |
+| Papka va nom | Papkani yuboruvchi tanlay olmaydi (Student: `Hujjatlar\ClassroomControl\Received from teacher`, Teacher: `...\Received from students\<o‘quvchi_kompyuter>`). Nom tozalanadi: `..`, `\`, `/`, `:`, qurilma nomlari (`CON`, `NUL`…), yashirin va boshqaruv belgilari (RTL override) olib tashlanadi. Mavjud fayl hech qachon ustiga yozilmaydi (`nom (1).ext`). |
+| Dastur va skriptlar | `.exe .msi .bat .cmd .com .scr .ps1 .vbs .js .hta .lnk .reg .jar .dll …` standart bo‘yicha **rad etiladi**. Student buni o‘zi hal qiladi (o‘qituvchi o‘zgartira olmaydi). Teacher faqat o‘quvchilardan kelganini qabul qilishni qo‘lda yoqishi mumkin. Fayl hech qachon avtomatik ishga tushirilmaydi. |
+| Butunlik | Qabul qiluvchi hajm va SHA‑256 ni tekshiradi; mos kelmasa fayl o‘chiriladi va saqlanmaydi. Yarim yuklangan fayl yashirin `.incoming` papkada turadi va xato/uzilishda o‘chiriladi. |
+| Cheklovlar | Eng katta fayl (standart 512 MB, Teacher sozlamasi), bir vaqtda 3 ta, 60 s harakatsiz → bekor, diskda 100 MB zaxira. |
+| Shaffoflik va audit | Student har bir kelgan faylni oynada ko‘radi, o‘zi yuborayotganini ham. Teacher jurnalida `SendFile` / `ReceiveFile` yoziladi (fayl nomi, hajm, natija). |
+
 ## Qabul qilingan cheklovlar
 - Sinf kodini bilgan kishi o‘z kompyuterini "Pending" qila oladi, lekin tasdiqsiz hech narsa qila olmaydi. Kod oshkor bo‘lsa — yangisini yarating (barcha ulanishlar uziladi).
 - Lock ekranida Ctrl+Alt+Del va Task Manager ishlaydi (Windows xavfsizligini chetlab o‘tilmaydi); o‘quvchi agentni Task Manager’dan tugatishi mumkin — Teacher kompyuterni "Oflayn" deb ko‘radi.

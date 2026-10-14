@@ -6,3 +6,6 @@ artifacts/
 .vs/
 TestResults/
 deliver/
+
+# local WPF sanity-check scratch output
+wpfcheck*/

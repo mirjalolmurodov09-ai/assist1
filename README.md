@@ -4,8 +4,8 @@ Lokal tarmoq (LAN/Wi‑Fi) orqali o‘qituvchi kompyuteridan o‘quvchilar kompy
 
 | Qism | Nima qiladi | Chiqish fayli |
 |---|---|---|
-| **Teacher** | Kompyuterlarni topadi, ekranlarini ko‘rsatadi, boshqaradi, bloklaydi, xabar yuboradi, skrinshot oladi, o‘z ekranini uzatadi | `ClassroomControl.Teacher.exe` |
-| **Student Agent** | Har bir o‘quvchi kompyuterida ishlaydi, faqat tasdiqlangan Teacher buyruqlarini bajaradi, nima bo‘layotganini o‘quvchiga ko‘rsatib turadi | `ClassroomControl.Student.exe` |
+| **Teacher** | Kompyuterlarni topadi, ekranlarini ko‘rsatadi, boshqaradi, bloklaydi, xabar yuboradi, skrinshot oladi, o‘z ekranini uzatadi, **fayl yuboradi/qabul qiladi** | `ClassroomControl.Teacher.exe` |
+| **Student Agent** | Har bir o‘quvchi kompyuterida ishlaydi, faqat tasdiqlangan Teacher buyruqlarini bajaradi, nima bo‘layotganini o‘quvchiga ko‘rsatib turadi; o‘quvchi Teacher’ga fayl yubora oladi | `ClassroomControl.Student.exe` |
 | **Local Classroom Server** | Teacher ichidagi komponent: TLS/UDP server, SQLite, autentifikatsiya, tasdiqlash, audit log | `ClassroomControl.ClassroomServer.dll` |
 
 Installerlar: `ClassroomControl-Teacher-Setup.exe`, `ClassroomControl-Student-Setup.exe`, `ClassroomControl-Setup.exe` (ikkalasi).

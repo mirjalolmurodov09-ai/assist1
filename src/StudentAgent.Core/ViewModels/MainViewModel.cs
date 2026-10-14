@@ -1,3 +1,4 @@
+using ClassroomControl.Shared.Files;
 using ClassroomControl.StudentAgent.Features;
 using ClassroomControl.StudentAgent.Models;
 using ClassroomControl.StudentAgent.Resources.Strings;
@@ -12,6 +13,9 @@ public interface IWindowService
     void ShowMain();
     void ShowSettings(bool aboutTab = false);
     void ShowRegistration();
+    /// <summary>Lets the student choose a file to send to the teacher; null when cancelled.</summary>
+    string? PickFileToSend();
+    void OpenFolder(string path);
 }
 
 public sealed class MainViewModel : ObservableObject, IDisposable
@@ -22,11 +26,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly ISettingsService _settings;
     private readonly IUiDispatcher _ui;
     private readonly FeatureState _features;
+    private readonly IFileTransferService _files;
+    private readonly IWindowService _windows;
+    private CancellationTokenSource? _sendCts;
+    private string _fileStatus = UiStrings.FileIdle;
+    private int _filePercent;
+    private bool _fileBusy;
     private AgentStatusSnapshot _snapshot;
 
-    public MainViewModel(IAgentStatusStore store, IDeviceInfoService device, ISettingsService settings, IUiDispatcher ui, IWindowService windows, FeatureState features)
+    public MainViewModel(IAgentStatusStore store, IDeviceInfoService device, ISettingsService settings, IUiDispatcher ui, IWindowService windows, FeatureState features, IFileTransferService files)
     {
         _features = features;
+        _files = files;
+        _windows = windows;
         _store = store;
         _device = device;
         _settings = settings;
@@ -34,6 +46,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _snapshot = store.Current;
         OpenSettingsCommand = new RelayCommand(() => windows.ShowSettings());
         OpenRegistrationCommand = new RelayCommand(() => windows.ShowRegistration());
+        SendFileCommand = new AsyncRelayCommand(SendFileAsync, () => _files.CanSend && !_fileBusy);
+        CancelFileCommand = new RelayCommand(() => _sendCts?.Cancel(), () => _fileBusy);
+        OpenReceivedFolderCommand = new RelayCommand(() => windows.OpenFolder(_files.ReceiveFolder));
+        _files.Progress += OnFileProgress;
         _store.Changed += OnStatusChanged;
         _settings.Changed += OnSettingsChanged;
         _features.Changed += OnFeaturesChanged;
@@ -53,6 +69,90 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public ICommand OpenSettingsCommand { get; }
     public ICommand OpenRegistrationCommand { get; }
+    public ICommand SendFileCommand { get; }
+    public ICommand CancelFileCommand { get; }
+    public ICommand OpenReceivedFolderCommand { get; }
+
+    public string FileStatusText
+    {
+        get => _fileStatus;
+        private set => Set(ref _fileStatus, value);
+    }
+
+    public int FilePercent
+    {
+        get => _filePercent;
+        private set => Set(ref _filePercent, value);
+    }
+
+    public bool IsFileBusy
+    {
+        get => _fileBusy;
+        private set => Set(ref _fileBusy, value);
+    }
+
+    private async Task SendFileAsync()
+    {
+        var path = _windows.PickFileToSend();
+        if (string.IsNullOrEmpty(path)) return;
+        using var cts = new CancellationTokenSource();
+        _sendCts = cts;
+        _ui.Post(() =>
+        {
+            IsFileBusy = true;
+            RaiseFileCommands();
+        });
+        try
+        {
+            await _files.SendToTeacherAsync(path, cts.Token).ConfigureAwait(true);
+        }
+        finally
+        {
+            _sendCts = null;
+            _ui.Post(() =>
+            {
+                IsFileBusy = false;
+                RaiseFileCommands();
+            });
+        }
+    }
+
+    private void RaiseFileCommands()
+    {
+        (SendFileCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+        (CancelFileCommand as RelayCommand)?.RaiseCanExecuteChanged();
+    }
+
+    private void OnFileProgress(TransferProgress p) => _ui.Post(() =>
+    {
+        var percent = (int)Math.Round(p.Fraction * 100);
+        if (p.Direction == TransferDirection.Sending)
+        {
+            FilePercent = p.State == TransferState.Completed ? 100 : percent;
+            FileStatusText = p.State switch
+            {
+                TransferState.Preparing or TransferState.Waiting => UiStrings.FilePreparing(p.FileName),
+                TransferState.Transferring => UiStrings.FileSending(p.FileName, percent),
+                TransferState.Completed => UiStrings.FileSent(p.FileName),
+                TransferState.Cancelled => UiStrings.FileCancelled,
+                _ => UiStrings.FileFailed(p.FileName, p.Message),
+            };
+        }
+        else if (p.State == TransferState.Transferring)
+        {
+            FilePercent = percent;
+            FileStatusText = UiStrings.FileReceiving(p.FileName, percent);
+        }
+        else if (p.State == TransferState.Completed)
+        {
+            FilePercent = 100;
+            FileStatusText = UiStrings.FileReceivedShort(p.FileName);
+        }
+        else if (p.IsFinished)
+        {
+            FileStatusText = UiStrings.FileReceiveFailed(p.FileName, p.Message);
+        }
+    });
 
     public string Title => "Classroom Control — Student Agent";
     public string AgentVersion => _device.AgentVersion;
@@ -96,6 +196,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         _snapshot = snapshot;
         RaiseAll();
+        RaiseFileCommands();
     });
 
     private void OnSettingsChanged(object? sender, EventArgs e) => _ui.Post(RaiseAll);
@@ -115,5 +216,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _store.Changed -= OnStatusChanged;
         _settings.Changed -= OnSettingsChanged;
         _features.Changed -= OnFeaturesChanged;
+        _files.Progress -= OnFileProgress;
     }
 }

@@ -26,6 +26,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _dialogs = dialogs;
         _ui = ui;
         _session = session;
+        Files = new FileTransferViewModel(server, dialogs, ui, () => [.. Selected().Where(c => c.CanBeCommanded).Select(c => c.DeviceId)], () => SelectedFilter.GroupId);
+        Files.FileReceived += OnFileReceived;
 
         Filters.Add(new GroupFilter(GroupFilter.AllKey, "Filter.All", null, null));
         Filters.Add(new GroupFilter(GroupFilter.OnlineKey, "Filter.Online", null, null));
@@ -63,6 +65,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         LogsCommand = new RelayCommand(() => _dialogs.ShowSettings(SettingsTab.Logs));
         ScreenshotsCommand = new RelayCommand(() => _dialogs.ShowScreenshots());
         AboutCommand = new RelayCommand(() => _dialogs.ShowAbout());
+        ShowFilesCommand = new RelayCommand(() => _dialogs.ShowFiles(Files));
+        SendFileSelectedCommand = new AsyncRelayCommand(() => ((AsyncRelayCommand)Files.SendToSelectedCommand).ExecuteAsync(), HasSelection);
         MoveToGroupCommand = new RelayCommand(p => MoveToGroup(p as GroupRecord), _ => HasSelection());
 
         _server.DeviceChanged += OnDeviceChanged;
@@ -107,6 +111,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand ScreenshotsCommand { get; }
     public ICommand AboutCommand { get; }
     public ICommand MoveToGroupCommand { get; }
+    public ICommand ShowFilesCommand { get; }
+    public ICommand SendFileSelectedCommand { get; }
+
+    /// <summary>File transfer in both directions (sending, the transfer list, the settings).</summary>
+    public FileTransferViewModel Files { get; }
 
     public string ClassroomName => _server.Classroom.Name;
     public string ClassroomCode => _server.ClassroomCodeText;
@@ -276,7 +285,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var command in new ICommand[]
         {
             LockSelectedCommand, UnlockSelectedCommand, MessageSelectedCommand, ScreenshotCommand, RestartCommand, ShutdownCommand, OpenApplicationCommand,
-            CloseApplicationCommand, BlockApplicationCommand, UnblockApplicationCommand, ShareScreenSelectedCommand, ShareScreenGroupCommand, ApproveCommand, RejectCommand, RenameCommand, RemoveCommand,
+            CloseApplicationCommand, BlockApplicationCommand, UnblockApplicationCommand, SendFileSelectedCommand, ShareScreenSelectedCommand, ShareScreenGroupCommand, ApproveCommand, RejectCommand, RenameCommand, RemoveCommand,
             MoveToGroupCommand, ViewScreenCommand, RemoteControlCommand,
         })
         {
@@ -460,8 +469,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StatusMessage = Loc.Instance["Group.Moved"];
     }
 
+    private void OnFileReceived(object? sender, TransferUpdate update) =>
+        StatusMessage = Loc.Instance.Format("Files.ReceivedStatus", update.ComputerTitle, update.Progress.FileName);
+
     public void Dispose()
     {
+        Files.FileReceived -= OnFileReceived;
+        Files.Dispose();
         _server.DeviceChanged -= OnDeviceChanged;
         _server.DeviceRemoved -= OnDeviceRemoved;
         _share.SharingChanged -= OnSharingChanged;

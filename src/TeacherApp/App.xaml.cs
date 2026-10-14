@@ -57,6 +57,7 @@ namespace ClassroomControl.TeacherApp
                 ISecretProtector protector = OperatingSystem.IsWindows() ? new DpapiSecretProtector() : new AesFileSecretProtector(paths.KeyFile);
                 _runtime = TeacherRuntime.Create(paths.DataDirectory, protector, _loggers.CreateLogger<Server>(), o =>
                 {
+                    o.ReceivedFilesDirectoryOverride = paths.ReceivedFilesDirectory;
                     if (options.AllowLoopback)
                     {
                         o.AllowLoopbackClients = true;

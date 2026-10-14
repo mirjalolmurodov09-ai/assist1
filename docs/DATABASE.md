@@ -13,7 +13,7 @@ Teacher: `%LOCALAPPDATA%\ClassroomControl\Teacher\classroom.db` (WAL rejimi, `Mi
 | `Commands` | yuborilgan buyruqlar: id, nom, natija, kim so‘ragan |
 | `Logs` | audit: vaqt, ustoz, kompyuter, amal, natija, tafsilot |
 | `Screenshots` | skrinshot tarixi (fayl yo‘li) |
-| `Settings` | kalit/qiymat (FPS, sifat, til, tema, portlar, TLS PFX paroli (shifrlangan)…) |
+| `Settings` | kalit/qiymat (FPS, sifat, til, tema, portlar, TLS PFX paroli (shifrlangan), fayl uzatish: `MaxFileSizeMb`, `AcceptFilesFromStudents`, `AllowExecutableFiles`…) |
 
 ## Migratsiya
 `SchemaVersion` jadvali joriy versiyani saqlaydi. `ClassroomStore` ochilganda `Data/Schema.cs` dagi yuqori versiyali skriptlar **bitta tranzaksiyada** ketma-ket bajariladi. Mavjud migratsiyani o‘zgartirmang — yangi versiya qo‘shing:

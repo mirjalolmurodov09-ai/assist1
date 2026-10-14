@@ -26,7 +26,7 @@ public sealed class ViewModelTests : IDisposable
 
     private readonly Features.FeatureState _features = new();
 
-    private MainViewModel Main() => new(_store, _device, _settings, new ImmediateDispatcher(), _windows, _features);
+    private MainViewModel Main() => new(_store, _device, _settings, new ImmediateDispatcher(), _windows, _features, new FakeFileTransferService());
 
     [Fact]
     public void Main_window_shows_offline_initially()
@@ -221,6 +221,8 @@ public sealed class ViewModelTests : IDisposable
         public void ShowMain() { }
         public void ShowSettings(bool aboutTab = false) => SettingsOpened++;
         public void ShowRegistration() => RegistrationOpened++;
+        public string? PickFileToSend() => null;
+        public void OpenFolder(string path) { }
     }
 
     private sealed class FakeDevice(string id) : IDeviceInfoService

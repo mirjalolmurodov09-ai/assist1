@@ -39,6 +39,14 @@ public static class MessageTypes
     public const string MouseEvent = "MOUSE_EVENT";
     public const string KeyboardEvent = "KEYBOARD_EVENT";
     public const string StatusUpdate = "STATUS_UPDATE";
+
+    // File transfer (both directions, same messages). Offer -> Reply -> Chunk* -> End -> Result; Cancel stops a transfer early.
+    public const string FileOffer = "FILE_OFFER";
+    public const string FileReply = "FILE_REPLY";
+    public const string FileChunk = "FILE_CHUNK";
+    public const string FileEnd = "FILE_END";
+    public const string FileCancel = "FILE_CANCEL";
+    public const string FileResult = "FILE_RESULT";
 }
 
 public static class ErrorCodes
@@ -63,6 +71,16 @@ public static class ErrorCodes
     public const string PlatformUnavailable = "PLATFORM_UNAVAILABLE";
     public const string UntrustedCertificate = "UNTRUSTED_CERTIFICATE";
     public const string UntrustedNetwork = "UNTRUSTED_NETWORK";
+    public const string FileRejected = "FILE_REJECTED";
+    public const string FileTooLarge = "FILE_TOO_LARGE";
+    public const string FileTypeBlocked = "FILE_TYPE_BLOCKED";
+    public const string FileNoSpace = "FILE_NO_SPACE";
+    public const string FileCorrupt = "FILE_CORRUPT";
+    public const string FileCancelled = "FILE_CANCELLED";
+    public const string FileNotFound = "FILE_NOT_FOUND";
+    public const string TooManyTransfers = "TOO_MANY_TRANSFERS";
+    public const string TransferTimeout = "TRANSFER_TIMEOUT";
+    public const string ConnectionLost = "CONNECTION_LOST";
 }
 
 public sealed class ProtocolException : Exception

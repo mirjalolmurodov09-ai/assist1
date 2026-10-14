@@ -35,6 +35,13 @@ Start menyusidan **Reset administrator password** yorlig‘ini oching (yoki `Cla
 ro‘yxatdan hisobni tanlang (login nomlari shu yerda ko‘rinadi) va yangi parolni ikki marta kiriting. Bu faqat shu kompyuterda Windows administratori huquqi bilan ishlaydi,
 bloklangan hisobni ham qayta yoqadi va amal audit jurnaliga yoziladi (parol yozilmaydi).
 
+### Fayl uzatish
+**Teacher → o‘quvchilar.** O‘ng paneldagi **Fayl yuborish** (tanlangan kompyuterlarga) yoki yuqori paneldagi **Fayllar** oynasi: *Tanlanganga*, *Guruhga* (chap paneldan guruh tanlang), *Onlaynlarning hammasiga*. Bir yoki bir nechta faylni tanlang; har bir kompyuter uchun jarayon (foiz, holat, xato sababi) ro‘yxatda ko‘rinadi. *Yuborishni bekor qilish* — hammasini to‘xtatadi. Bir vaqtda 8 tagacha kompyuterga yuboriladi.
+O‘quvchida fayl `Hujjatlar\ClassroomControl\Received from teacher` papkasiga tushadi va u haqida oyna chiqadi.
+**O‘quvchi → Teacher.** Student oynasidagi **Fayllar** bo‘limi: *Send a file to the teacher…* → faylni o‘zi tanlaydi. Fayl Teacher’da `Hujjatlar\ClassroomControl\Received from students\<o‘quvchi_kompyuter>` papkasiga tushadi, holat satrida xabar chiqadi, *Fayllar* oynasida **Papkani ochish** tugmasi bor.
+**Sozlamalar (Fayllar oynasida):** eng katta fayl (MB), *O‘quvchilardan fayl qabul qilish* (o‘chirsangiz o‘quvchilar fayl yubora olmaydi), *Dastur va skriptlarni qabul qilish* (standart o‘chiq: `.exe`, `.bat`, `.ps1`… rad etiladi). O‘quvchi kompyuteri dastur fayllarini baribir qabul qilmaydi.
+Fayl butunligi SHA‑256 bilan tekshiriladi; buzilgan yoki yarim fayl saqlanmaydi. Mavjud fayl ustiga yozilmaydi (`hisobot (1).docx`).
+
 ## B. O‘quvchi (Student Agent)
 1. Dastur o‘zi ishga tushadi (tray’da yashil/sariq/qizil nuqta). Birinchi marta **sinf kodi** va ismingizni kiriting → **Connect**.
 2. Holatlar: 🟡 *Connecting…* → "Waiting for Teacher approval" → 🟢 *Connected / Registered*. 🔴 *Offline* bo‘lsa dastur o‘zi qayta urinadi (1, 2, 5, 10, 20, 30 soniya …).

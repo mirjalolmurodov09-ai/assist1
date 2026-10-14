@@ -33,5 +33,22 @@ public static class UiStrings
 
     public static string ActivityBlocked(IEnumerable<string> names) => $"⛔ O‘qituvchi bu dasturlarni taqiqladi: {string.Join(", ", names)}.";
 
+    public const string FileNoTeacher = "Teacher bilan ulanish yo‘q yoki kompyuter hali tasdiqlanmagan.";
+    public const string FileNotApproved = "Bu kompyuter hali tasdiqlanmagan.";
+    public const string FileReceivedTitle = "Teacherdan fayl keldi";
+    public const string FileCancelled = "Fayl yuborish bekor qilindi.";
+    public const string FileIdle = "Fayl yuborish: Teacherga fayl yuborishingiz mumkin.";
+
+    public static string FileReceived(string name, string folder) => $"Teacher sizga fayl yubordi: {name}{Environment.NewLine}Saqlandi: {folder}";
+    public static string FileSending(string name, int percent) => $"Yuborilmoqda: {name} ({percent}%)";
+    public static string FilePreparing(string name) => $"Tayyorlanmoqda: {name}";
+    public static string FileReceiving(string name, int percent) => $"Teacherdan qabul qilinmoqda: {name} ({percent}%)";
+    public static string FileReceivedShort(string name) => $"Qabul qilindi: {name}";
+    public static string FileReceiveFailed(string name, string? reason) => $"Qabul qilinmadi: {name}. {FileError(reason)}";
+    public static string FileSent(string name) => $"Yuborildi: {name}";
+    public static string FileFailed(string name, string? reason) => $"Yuborilmadi: {name}. {FileError(reason)}";
+
+    public static string FileError(string? message) => string.IsNullOrWhiteSpace(message) ? "Noma’lum xatolik." : message;
+
     public static string ReconnectingIn(TimeSpan delay) => $"Offline. {delay.TotalSeconds:0} soniyadan keyin qayta uriniladi...";
 }

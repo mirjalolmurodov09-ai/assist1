@@ -101,6 +101,24 @@ namespace ClassroomControl.TeacherApp.Services
                     await Task.Delay(1500);
                     return (await server.StopApplicationAsync(first, "notepad")).Success;
                 });
+                var transferFile = Path.Combine(_outDir, "ci-transfer.bin");
+                await Check("file transfer to every student (real TLS, SHA-256 verified)", async () =>
+                {
+                    var data = new byte[700_000]; // four chunks
+                    new Random(11).NextBytes(data);
+                    await File.WriteAllBytesAsync(transferFile, data);
+                    var results = await server.SendFileToManyAsync(ids, transferFile);
+                    Note(string.Join("; ", results.Select(r => $"{r.Result.State} {r.Result.ErrorCode}")));
+                    return results.Count == ids.Count && results.All(r => r.Result.State == ClassroomControl.Shared.Files.TransferState.Completed);
+                });
+                await Check("program files are refused", async () =>
+                {
+                    var exe = Path.Combine(_outDir, "ci-program.exe");
+                    await File.WriteAllBytesAsync(exe, new byte[100]);
+                    var result = await server.SendFileAsync(first, exe);
+                    File.Delete(exe);
+                    return result.State == ClassroomControl.Shared.Files.TransferState.Failed && result.ErrorCode == ErrorCodes.FileTypeBlocked;
+                });
                 await Check("status update carries CPU/RAM", () => Task.FromResult(_runtime.Server.GetDevice(first)?.Status is { RamTotalBytes: > 0 }));
 
                 foreach (var (theme, language) in new[] { ("Light", "uz"), ("Dark", "uz"), ("Light", "en"), ("Dark", "ru") })
@@ -112,6 +130,16 @@ namespace ClassroomControl.TeacherApp.Services
                 }
                 _theme.Apply("Light");
                 Loc.Instance.Language = "uz";
+                {
+                    var dialogs = new DialogService(_runtime.Server, _runtime.Users, _runtime.Session, _runtime.Monitoring, new WpfDispatcher(), _theme);
+                    dialogs.ShowFiles(_main.Files);
+                    await Task.Delay(1200);
+                    if (Application.Current.Windows.OfType<Views.FilesWindow>().FirstOrDefault() is { } files)
+                    {
+                        Render(Path.Combine(_outDir, "teacher-files.png"), files);
+                        files.Close();
+                    }
+                }
                 foreach (var tab in Enum.GetValues<SettingsTab>().Where(t => t is SettingsTab.General or SettingsTab.Logs))
                 {
                     var dialogs = new DialogService(_runtime.Server, _runtime.Users, _runtime.Session, _runtime.Monitoring, new WpfDispatcher(), _theme);

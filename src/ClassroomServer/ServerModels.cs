@@ -1,5 +1,6 @@
 using System.Net;
 using ClassroomControl.ClassroomServer.Data;
+using ClassroomControl.Shared.Files;
 
 namespace ClassroomControl.ClassroomServer;
 
@@ -32,6 +33,10 @@ public sealed class ClassroomServerOptions
     public string DatabasePath => Path.Combine(DataDirectory, "classroom.db");
     public string CertificatePath => Path.Combine(DataDirectory, "teacher-tls.pfx");
     public string ScreenshotDirectory => Path.Combine(DataDirectory, "Screenshots");
+
+    /// <summary>Where files sent by students are stored (one sub-folder per computer). Defaults to a folder inside the data directory.</summary>
+    public string? ReceivedFilesDirectoryOverride { get; set; }
+    public string ReceivedFilesDirectory => ReceivedFilesDirectoryOverride ?? Path.Combine(DataDirectory, "ReceivedFiles");
 }
 
 /// <summary>What the Teacher UI knows about one computer right now.</summary>
@@ -62,6 +67,9 @@ public sealed class FrameReceivedEventArgs : EventArgs
     public ScreenFrameMessage Frame { get; }
 }
 
+/// <summary>One change of a file transfer with a computer (either direction), for the Teacher's transfer list.</summary>
+public sealed record TransferUpdate(string DeviceId, string ComputerTitle, Shared.Files.TransferProgress Progress);
+
 public sealed record CommandOutcome(string DeviceId, string CommandName, bool Success, string? ErrorCode, string Message, CommandResult? Result)
 {
     public static CommandOutcome Failure(string deviceId, string name, string code, string message) => new(deviceId, name, false, code, message, null);
@@ -89,6 +97,13 @@ public sealed class ServerSettings
     public string Language { get => Text(nameof(Language), "uz"); set => _store.SetSetting(nameof(Language), value); }
     public int TcpPort { get => Int(nameof(TcpPort), ProtocolConstants.DefaultTeacherPort, 1, 65535); set => Set(nameof(TcpPort), value); }
     public int DiscoveryPort { get => Int(nameof(DiscoveryPort), ProtocolConstants.DefaultDiscoveryPort, 1, 65535); set => Set(nameof(DiscoveryPort), value); }
+
+    public int MaxFileSizeMb { get => Int(nameof(MaxFileSizeMb), 512, 1, 4096); set => Set(nameof(MaxFileSizeMb), value); }
+    public bool AcceptFilesFromStudents { get => Int(nameof(AcceptFilesFromStudents), 1, 0, 1) == 1; set => Set(nameof(AcceptFilesFromStudents), value ? 1 : 0); }
+    public bool AllowExecutableFiles { get => Int(nameof(AllowExecutableFiles), 0, 0, 1) == 1; set => Set(nameof(AllowExecutableFiles), value ? 1 : 0); }
+
+    /// <summary>Policy for files this Teacher sends and receives, built from the current settings.</summary>
+    public FileTransferPolicy FilePolicy => new() { MaxFileBytes = MaxFileSizeMb * 1024L * 1024, AllowExecutables = AllowExecutableFiles };
 
     private string Text(string key, string fallback) => _store.GetSetting(key) ?? fallback;
 

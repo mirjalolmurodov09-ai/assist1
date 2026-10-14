@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using ClassroomControl.ClassroomServer.Data;
 using ClassroomControl.ClassroomServer.Security;
+using ClassroomControl.Shared.Files;
 using Microsoft.Extensions.Logging;
 
 namespace ClassroomControl.ClassroomServer;
@@ -90,6 +91,7 @@ public sealed class ClassroomServer : IAsyncDisposable
     public event EventHandler<string>? DeviceRemoved;
     public event EventHandler<FrameReceivedEventArgs>? FrameReceived;
     public event EventHandler<LogEntry>? LogAdded;
+    public event EventHandler<TransferUpdate>? TransferChanged;
 
     private static string CertificateFingerprintOf(X509Certificate2 certificate) => Shared.Communication.Security.CertificateFingerprint.Of(certificate);
 
@@ -359,6 +361,11 @@ public sealed class ClassroomServer : IAsyncDisposable
         var secure = new SecureChannel(channel, sessionId, keys.TeacherToClient, keys.ClientToTeacher, _time, _options.MaxClockSkewSecondsSpan(), negotiated);
         var device = new DeviceConnection(hello.DeviceId, sessionId, secure, connectionCts, recorder, now) { Registration = computer.Status };
 
+        var receiver = new FileReceiver(() => Settings.FilePolicy, Path.Combine(_options.ReceivedFilesDirectory, ReceivedFolderName(computer)), _time);
+        receiver.DeleteStalePartialFiles(TimeSpan.FromHours(1));
+        device.Files = new FileTransferCoordinator(receiver, new SecureChannelSink(secure), () => Settings.FilePolicy);
+        device.Files.Progress += progress => OnTransferProgress(device.DeviceId, progress);
+
         if (_online.TryGetValue(hello.DeviceId, out var previous)) previous.Disconnect("Replaced by a new connection");
         _online[hello.DeviceId] = device;
         Store.OpenSession(sessionId, hello.DeviceId, now);
@@ -404,6 +411,15 @@ public sealed class ClassroomServer : IAsyncDisposable
                     if (device.Pending.TryRemove(result.CommandId, out var tcs)) tcs.TrySetResult(result);
                     break;
 
+                case MessageTypes.FileOffer:
+                case MessageTypes.FileReply:
+                case MessageTypes.FileChunk:
+                case MessageTypes.FileEnd:
+                case MessageTypes.FileCancel:
+                case MessageTypes.FileResult:
+                    await HandleFileMessageAsync(device, message, ct).ConfigureAwait(false);
+                    break;
+
                 case MessageTypes.Disconnect:
                     device.DisconnectReason = "Student disconnected";
                     return;
@@ -411,8 +427,98 @@ public sealed class ClassroomServer : IAsyncDisposable
         }
     }
 
+    private async Task HandleFileMessageAsync(DeviceConnection device, VerifiedMessage message, CancellationToken ct)
+    {
+        if (device.Files is null || device.Registration != RegistrationState.Approved)
+        {
+            if (message.Type == MessageTypes.FileOffer)
+                await RefuseOfferAsync(device, message, ErrorCodes.NotRegistered, "Kompyuter hali tasdiqlanmagan.", ct).ConfigureAwait(false);
+            return;
+        }
+        if (message.Type == MessageTypes.FileOffer && !Settings.AcceptFilesFromStudents)
+        {
+            await RefuseOfferAsync(device, message, ErrorCodes.FileRejected, "Ustoz hozir o‘quvchilardan fayl qabul qilmayapti.", ct).ConfigureAwait(false);
+            return;
+        }
+        await device.Files.HandleAsync(message, ct).ConfigureAwait(false);
+    }
+
+    private static Task RefuseOfferAsync(DeviceConnection device, VerifiedMessage message, string code, string text, CancellationToken ct)
+    {
+        var offer = MessageSerializer.Deserialize<FileOfferMessage>(message.Payload);
+        return device.Channel.SendAsync(MessageTypes.FileReply, new FileReplyMessage(offer.TransferId, false, code, text), ct);
+    }
+
+    private void OnTransferProgress(string deviceId, TransferProgress progress)
+    {
+        var title = Store.GetComputer(deviceId)?.Title ?? deviceId;
+        if (progress.IsFinished)
+        {
+            var action = progress.Direction == TransferDirection.Sending ? "SendFile" : "ReceiveFile";
+            var details = $"{progress.FileName} ({FormatSize(progress.Size)}){(progress.Message is { Length: > 0 } ? " - " + progress.Message : string.Empty)}";
+            Audit(action, title, progress.State == TransferState.Completed ? "OK" : progress.ErrorCode ?? progress.State.ToString(), details);
+        }
+        TransferChanged?.Invoke(this, new TransferUpdate(deviceId, title, progress));
+    }
+
+    private static string FormatSize(long bytes) => bytes switch
+    {
+        >= 1024L * 1024 * 1024 => $"{bytes / 1024.0 / 1024 / 1024:0.0} GB",
+        >= 1024L * 1024 => $"{bytes / 1024.0 / 1024:0.0} MB",
+        >= 1024 => $"{bytes / 1024.0:0} KB",
+        _ => $"{bytes} B",
+    };
+
+    private static string ReceivedFolderName(ComputerRecord computer) =>
+        FileNameSanitizer.Sanitize(string.IsNullOrWhiteSpace(computer.StudentName) ? computer.ComputerName : $"{computer.StudentName}_{computer.ComputerName}");
+
+    /// <summary>The folder where files from this computer are stored.</summary>
+    public string ReceivedFolderFor(string deviceId) =>
+        Path.Combine(_options.ReceivedFilesDirectory, Store.GetComputer(deviceId) is { } computer ? ReceivedFolderName(computer) : FileNameSanitizer.Sanitize(deviceId));
+
+    public string ReceivedFilesDirectory => _options.ReceivedFilesDirectory;
+
+    /// <summary>Sends one file to one approved, online computer. Never throws for transfer problems; inspect the returned state.</summary>
+    public async Task<TransferProgress> SendFileAsync(string deviceId, string filePath, CancellationToken ct = default)
+    {
+        if (!_online.TryGetValue(deviceId, out var device) || device.Files is null) return RefusedTransfer(deviceId, filePath, "OFFLINE", "Qurilma hozir offline.");
+        if (device.Registration != RegistrationState.Approved) return RefusedTransfer(deviceId, filePath, ErrorCodes.NotRegistered, "Kompyuter hali tasdiqlanmagan.");
+        return await device.Files.SendFileAsync(filePath, ct).ConfigureAwait(false);
+    }
+
+    private const int MaxParallelFileSends = 8;
+
+    /// <summary>Sends one file to several computers; at most a few at a time so the Teacher's network card is not swamped.</summary>
+    public async Task<IReadOnlyList<(string DeviceId, TransferProgress Result)>> SendFileToManyAsync(IEnumerable<string> deviceIds, string filePath, CancellationToken ct = default)
+    {
+        using var gate = new SemaphoreSlim(MaxParallelFileSends);
+        var tasks = deviceIds.Distinct().Select(async id =>
+        {
+            await gate.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                return (id, await SendFileAsync(id, filePath, ct).ConfigureAwait(false));
+            }
+            finally
+            {
+                gate.Release();
+            }
+        });
+        return await Task.WhenAll(tasks).ConfigureAwait(false);
+    }
+
+    private TransferProgress RefusedTransfer(string deviceId, string filePath, string code, string message)
+    {
+        long size = 0;
+        try { size = new FileInfo(filePath).Length; } catch (Exception ex) when (ex is IOException or ArgumentException or UnauthorizedAccessException or NotSupportedException) { }
+        var progress = new TransferProgress(Guid.NewGuid().ToString("N"), TransferDirection.Sending, Path.GetFileName(filePath), size, 0, TransferState.Failed, code, message, filePath);
+        OnTransferProgress(deviceId, progress);
+        return progress;
+    }
+
     private void OnDisconnected(DeviceConnection device)
     {
+        device.Files?.Dispose();
         foreach (var pending in device.Pending.Values) pending.TrySetCanceled();
         // Only forget the device if this connection is still the registered one (a newer connection may have replaced it).
         var wasCurrent = _online.TryGetValue(device.DeviceId, out var current) && ReferenceEquals(current, device);

@@ -21,6 +21,9 @@ Barchasi **haqiqiy** TLS, UDP, SQLite va haqiqiy Student/Teacher mantig‘i bila
 | 14 | Noto‘g‘ri autentifikatsiya | `ConnectionTests.Wrong_classroom_code…`, `AuthenticationTests.*`, `ServerBehaviourTests.Client_without_the_classroom_code…` |
 | 15 | Noma’lum qurilma | `ServerBehaviourTests.Unknown_computer_stays_pending…`, `CommandTests.Commands_are_refused_until…` |
 
+### Fayl uzatish testlari
+`FileTransferTests`, `FileReceiverTests`, `FileNameSanitizerTests` (bo‘laklab uzatish, bo‘sh fayl, SHA‑256 mos kelmasligi, tartibdan tashqari/ortiqcha bo‘lak, bekor qilish va uzilishda yarim fayl o‘chishi, vaqt tugashi, disk to‘lishi, parallel limit, `..\..\` va qurilma nomlari); `FileTransferIntegrationTests` (haqiqiy TLS: ikki yo‘nalish, tasdiqlanmagan kompyuter, dastur fayllari rad etilishi, hajm limiti, ko‘pchilikka yuborish, o‘quvchidan qabulni o‘chirish); `TeacherAppTests.Files_*` (ro‘yxat, bekor qilish, sozlamalar, til). Windows CI end‑to‑end: haqiqiy Teacher ikkita haqiqiy Student’ga 700 KB fayl yuboradi va workflow ikkala diskdagi faylning SHA‑256 ini tekshiradi.
+
 ### Xavfsizlik testlari (37-band)
 Authentication bypass: `ServerBehaviourTests`, `AuthenticationTests`. Noma’lum qurilma buyruq yubora olmaydi: `Unknown_computer…`, `CommandTests`. Replay: `AuthenticationTests.Replayed_*`, `IntegrationTests.Replay_attack…`. Sessiya kaliti uzatilmaydi / xotirada: `HandshakeCrypto` (faqat HMAC hosilalari). Parollar hash: `UserTests.Passwords_are_hashed…`. Loglarda sir yo‘q: `RedactorTests`, `ServerBehaviourTests.Client_without…`. Sinf kodi diskda ochiq emas: `SettingsTests.Classroom_code_is_never_stored…`, `ServerBehaviourTests.Classroom_code_is_not_stored…`. Shifrlangan kanal: TLS majburiy (`ConnectionService`, `ClassroomServer`), pin: `ConnectionTests.Changed_teacher_certificate…`.
 

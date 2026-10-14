@@ -96,13 +96,17 @@
                     <Button Content="{l:Loc Top.ShareAll}" Command="{Binding ShareScreenAllCommand}" Margin="0,0,6,0" />
                     <Button Content="{l:Loc Top.Monitoring}" Command="{Binding ToggleMonitoringCommand}" Margin="0,0,6,0" />
                     <Button Content="{l:Loc Top.AddComputer}" Command="{Binding AddComputerCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,6,0" />
-                    <Button Content="{l:Loc Top.Screenshots}" Command="{Binding ScreenshotsCommand}" Margin="0,0,6,0" />
                     <Button Content="{l:Loc Top.Settings}" Command="{Binding SettingsCommand}" Margin="0,0,6,0" />
                     <Button Content="{l:Loc Top.About}" Command="{Binding AboutCommand}" Margin="0" />
                 </StackPanel>
                 <TextBlock Text="{l:Loc App.Name}" Style="{StaticResource Heading}" Margin="0,0,16,0" VerticalAlignment="Center" />
             </DockPanel>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <DockPanel Margin="0,6,0,0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="{l:Loc Top.Files}" Command="{Binding ShowFilesCommand}" Margin="0,0,6,0" Padding="10,2" />
+                    <Button Content="{l:Loc Top.Screenshots}" Command="{Binding ScreenshotsCommand}" Margin="0" Padding="10,2" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{l:Loc Top.Classroom}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding ClassroomName}" FontWeight="SemiBold" Margin="4,0,16,0" VerticalAlignment="Center" />
                     <TextBlock Text="{l:Loc Top.Connected}" Style="{StaticResource Muted}" VerticalAlignment="Center" />
@@ -115,6 +119,7 @@
                     <TextBlock Text="{Binding TeacherUser}" FontWeight="SemiBold" Margin="4,0,6,0" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding TeacherStatus}" Foreground="{DynamicResource OnlineBrush}" VerticalAlignment="Center" />
                 </StackPanel>
+                </DockPanel>
             </StackPanel>
         </Border>
 
@@ -169,6 +174,7 @@
                         <Button Content="{l:Loc Action.Unlock}" Command="{Binding UnlockSelectedCommand}" />
                         <Button Content="{l:Loc Action.Message}" Command="{Binding MessageSelectedCommand}" />
                         <Button Content="{l:Loc Action.Screenshot}" Command="{Binding ScreenshotCommand}" />
+                        <Button Content="{l:Loc Action.SendFile}" Command="{Binding SendFileSelectedCommand}" />
                         <Button Content="{l:Loc Action.ShareSelected}" Command="{Binding ShareScreenSelectedCommand}" />
                         <Button Content="{l:Loc Action.ShareGroup}" Command="{Binding ShareScreenGroupCommand}" />
                         <Button Content="{l:Loc Action.OpenApp}" Command="{Binding OpenApplicationCommand}" />

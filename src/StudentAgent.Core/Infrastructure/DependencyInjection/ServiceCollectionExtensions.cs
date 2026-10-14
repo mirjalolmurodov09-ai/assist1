@@ -46,6 +46,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IActiveSession, ActiveSession>();
         services.AddSingleton<IPingTracker, PingTracker>();
         services.AddSingleton<StatusReporter>();
+        services.AddSingleton<IFileTransferService, FileTransferService>();
         services.AddSingleton<IScreenStreamService, ScreenStreamService>();
         services.AddSingleton<IRemoteInputService, RemoteInputService>();
         services.AddSingleton<ITeacherScreenService, TeacherScreenService>();

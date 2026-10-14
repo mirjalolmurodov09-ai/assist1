@@ -65,6 +65,15 @@ jobs:
             throw "No result.json (Teacher exit code $($teacher.ExitCode))"
           }
           $result = Get-Content "$out\result.json" -Raw | ConvertFrom-Json
+          # The file the Teacher sent must be on both students' disks, byte for byte (the students verify SHA-256 as well).
+          $sent = (Get-FileHash "$out\ci-transfer.bin" -Algorithm SHA256).Hash
+          foreach ($s in 's1','s2') {
+            $got = Join-Path $PWD "ci-data\$s\Received\ci-transfer.bin"
+            if (-not (Test-Path $got)) { throw "File was not received by $s" }
+            if ((Get-FileHash $got -Algorithm SHA256).Hash -ne $sent) { throw "File received by $s differs from the original" }
+            if (Test-Path "ci-data\$s\Received\ci-program.exe") { throw "A program file was stored by $s" }
+          }
+          Remove-Item "$out\ci-transfer.bin" -Force
           $result.steps | ForEach-Object { '{0,-70} {1} {2}' -f $_.step, $(if ($_.ok) { 'OK' } else { 'FAILED' }), $_.note } | Out-Host
           if (-not $result.ok) {
             Get-ChildItem 'ci-data' -Recurse -Filter *.log | ForEach-Object { "--- $($_.FullName)"; Get-Content $_.FullName -Tail 60 }
