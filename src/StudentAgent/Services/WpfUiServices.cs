@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using ClassroomControl.StudentAgent.ViewModels;
 using ClassroomControl.StudentAgent.Views;
@@ -60,13 +61,23 @@ namespace ClassroomControl.StudentAgent.Services
             string? chosen = null;
             OnUi(() =>
             {
-                var dialog = new Microsoft.Win32.OpenFileDialog
+                try
                 {
-                    Title = (string)Application.Current.FindResource("Str.SendFile"),
-                    CheckFileExists = true,
-                    Multiselect = false,
-                };
-                if (dialog.ShowDialog() == true) chosen = dialog.FileName;
+                    // The dialog belongs to the visible Student window and is brought to the front, so it can never hide behind it.
+                    var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
+                                ?? Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();
+                    var dialog = new Microsoft.Win32.OpenFileDialog
+                    {
+                        Title = (string)Application.Current.FindResource("Str.SendFile"),
+                        CheckFileExists = true,
+                        Multiselect = false,
+                    };
+                    if ((owner is null ? dialog.ShowDialog() : dialog.ShowDialog(owner)) == true) chosen = dialog.FileName;
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or System.Runtime.InteropServices.COMException)
+                {
+                    MessageBox.Show(ex.Message, (string)Application.Current.FindResource("Str.WindowTitle"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             });
             return chosen;
         }

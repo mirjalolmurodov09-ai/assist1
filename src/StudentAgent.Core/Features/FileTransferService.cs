@@ -1,7 +1,9 @@
 using ClassroomControl.Shared.Communication.Security;
 using ClassroomControl.Shared.Files;
 using ClassroomControl.StudentAgent.Resources.Strings;
+using ClassroomControl.StudentAgent.Infrastructure.Helpers;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ClassroomControl.StudentAgent.Features;
 
@@ -11,6 +13,8 @@ namespace ClassroomControl.StudentAgent.Features;
 public interface IFileTransferService
 {
     event Action<TransferProgress>? Progress;
+    /// <summary>Raised when <see cref="CanSend"/> may have changed (session started or ended, approval changed).</summary>
+    event EventHandler? StateChanged;
     string ReceiveFolder { get; }
     /// <summary>True when the session is connected and this computer is approved by the Teacher.</summary>
     bool CanSend { get; }
@@ -34,16 +38,21 @@ public sealed class FileTransferService : IFileTransferService
     private FileTransferCoordinator? _coordinator;
     private RegistrationState _registration;
 
-    public FileTransferService(IAppPaths paths, IUserNotifier notifier, TimeProvider time, ILogger<FileTransferService> logger, FileTransferPolicy? policy = null)
+    public FileTransferService(IAppPaths paths, IUserNotifier notifier, TimeProvider time, ILogger<FileTransferService> logger, IOptions<AgentOptions> options)
     {
         ReceiveFolder = paths.ReceivedFilesDirectory;
         _notifier = notifier;
         _time = time;
         _logger = logger;
-        _policy = policy ?? new FileTransferPolicy();
+        _policy = new FileTransferPolicy
+        {
+            AllowExecutables = options.Value.AllowProgramFiles,
+            MaxFileBytes = Math.Clamp(options.Value.MaxFileSizeMb, 1, 4096) * 1024L * 1024,
+        };
     }
 
     public event Action<TransferProgress>? Progress;
+    public event EventHandler? StateChanged;
 
     public string ReceiveFolder { get; }
 
@@ -71,11 +80,13 @@ public sealed class FileTransferService : IFileTransferService
             _registration = registration;
         }
         previous?.Dispose();
+        StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void OnRegistrationChanged(RegistrationState registration)
     {
         lock (_gate) _registration = registration;
+        StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void OnSessionEnded()
@@ -87,6 +98,7 @@ public sealed class FileTransferService : IFileTransferService
             _coordinator = null;
         }
         coordinator?.Dispose();
+        StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public async Task HandleAsync(VerifiedMessage message, CancellationToken cancellationToken)
@@ -115,6 +127,7 @@ public sealed class FileTransferService : IFileTransferService
 
     public async Task<TransferProgress> SendToTeacherAsync(string filePath, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("File send requested: {Name}", Path.GetFileName(filePath));
         FileTransferCoordinator? coordinator;
         RegistrationState registration;
         lock (_gate)

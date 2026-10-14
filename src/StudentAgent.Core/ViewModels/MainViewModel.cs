@@ -46,7 +46,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _snapshot = store.Current;
         OpenSettingsCommand = new RelayCommand(() => windows.ShowSettings());
         OpenRegistrationCommand = new RelayCommand(() => windows.ShowRegistration());
-        SendFileCommand = new AsyncRelayCommand(SendFileAsync, () => _files.CanSend && !_fileBusy);
+        SendFileCommand = new AsyncRelayCommand(SendFileAsync, () => _files.CanSend && !_fileBusy, OnSendError);
+        _files.StateChanged += OnFilesStateChanged;
         CancelFileCommand = new RelayCommand(() => _sendCts?.Cancel(), () => _fileBusy);
         OpenReceivedFolderCommand = new RelayCommand(() => windows.OpenFolder(_files.ReceiveFolder));
         _files.Progress += OnFileProgress;
@@ -116,6 +117,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             });
         }
     }
+
+    private void OnSendError(Exception ex) => _ui.Post(() =>
+    {
+        IsFileBusy = false;
+        FileStatusText = UiStrings.FileFailed(string.Empty, ex.Message);
+        RaiseFileCommands();
+    });
+
+    private void OnFilesStateChanged(object? sender, EventArgs e) => _ui.Post(RaiseFileCommands);
 
     private void RaiseFileCommands()
     {
@@ -217,5 +227,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _settings.Changed -= OnSettingsChanged;
         _features.Changed -= OnFeaturesChanged;
         _files.Progress -= OnFileProgress;
+        _files.StateChanged -= OnFilesStateChanged;
     }
 }

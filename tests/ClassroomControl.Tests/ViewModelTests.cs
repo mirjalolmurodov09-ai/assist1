@@ -207,6 +207,36 @@ public sealed class ViewModelTests : IDisposable
         public void NotifySettingsChanged() => SettingsNotifications++;
     }
 
+    [Fact]
+    public async Task The_send_file_button_follows_the_connection_state_and_shows_failures()
+    {
+        var files = new FakeFileTransferService { CanSend = false };
+        var windows = new FakeWindows();
+        using var vm = new MainViewModel(_store, _device, _settings, new ImmediateDispatcher(), windows, _features, files);
+        Assert.False(vm.SendFileCommand.CanExecute(null));
+
+        files.CanSend = true; // the session attached after the "connected" status had been published
+        Assert.True(vm.SendFileCommand.CanExecute(null));
+
+        windows.PickedFile = "/tmp/hisobot.docx";
+        await ((AsyncRelayCommand)vm.SendFileCommand).ExecuteAsync();
+        Assert.Equal(["/tmp/hisobot.docx"], files.Sent);
+        Assert.Contains("hisobot.docx", vm.FileStatusText);
+        Assert.Equal(100, vm.FilePercent);
+        Assert.False(vm.IsFileBusy);
+
+        windows.PickedFile = null; // dialog cancelled: nothing happens
+        await ((AsyncRelayCommand)vm.SendFileCommand).ExecuteAsync();
+        Assert.Single(files.Sent);
+
+        files.Throw = new InvalidOperationException("boom");
+        windows.PickedFile = "/tmp/x.txt";
+        await ((AsyncRelayCommand)vm.SendFileCommand).ExecuteAsync();
+        Assert.Contains("boom", vm.FileStatusText);
+        Assert.False(vm.IsFileBusy);
+        Assert.True(vm.SendFileCommand.CanExecute(null));
+    }
+
     private sealed class FakeStartup : IStartupService
     {
         public bool? LastValue;
@@ -221,7 +251,8 @@ public sealed class ViewModelTests : IDisposable
         public void ShowMain() { }
         public void ShowSettings(bool aboutTab = false) => SettingsOpened++;
         public void ShowRegistration() => RegistrationOpened++;
-        public string? PickFileToSend() => null;
+        public string? PickedFile;
+        public string? PickFileToSend() => PickedFile;
         public void OpenFolder(string path) { }
     }
 

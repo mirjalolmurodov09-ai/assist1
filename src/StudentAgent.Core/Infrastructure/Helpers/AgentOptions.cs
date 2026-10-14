@@ -23,6 +23,13 @@ public sealed class AgentOptions
     /// <summary>Only the commands listed here may run (all others are rejected as disabled).</summary>
     public string[] EnabledCommands { get; set; } = [.. CommandNames.All];
 
+    /// <summary>Files from the Teacher: programs and scripts (.exe, .bat, .ps1 ...) are refused unless the administrator of THIS computer
+    /// switches this on here. The Teacher cannot change it. A received file is never started automatically.</summary>
+    public bool AllowProgramFiles { get; set; }
+
+    /// <summary>Largest file this computer accepts from the Teacher (MB).</summary>
+    public int MaxFileSizeMb { get; set; } = 512;
+
     /// <summary>Test/lab only: accept a Teacher on the loopback interface. Off in production.</summary>
     public bool AllowLoopbackTeacher { get; set; }
 

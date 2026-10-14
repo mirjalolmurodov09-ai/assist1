@@ -91,9 +91,12 @@ internal sealed class MemoryChannelPair
 internal sealed class FakeFileTransferService : ClassroomControl.StudentAgent.Features.IFileTransferService
 {
     public event Action<ClassroomControl.Shared.Files.TransferProgress>? Progress;
+    public event EventHandler? StateChanged;
     public string ReceiveFolder { get; set; } = "/tmp/received";
-    public bool CanSend { get; set; } = true;
+    private bool _canSend = true;
+    public bool CanSend { get => _canSend; set { _canSend = value; StateChanged?.Invoke(this, EventArgs.Empty); } }
     public List<string> Sent { get; } = [];
+    public Exception? Throw { get; set; }
     public IReadOnlyList<ClassroomControl.Shared.Files.TransferProgress> Recent => [];
     public void OnSessionStarted(ClassroomControl.Shared.Communication.Security.SecureChannel channel, ClassroomControl.Shared.Models.RegistrationState registration) { }
     public void OnRegistrationChanged(ClassroomControl.Shared.Models.RegistrationState registration) { }
@@ -102,6 +105,7 @@ internal sealed class FakeFileTransferService : ClassroomControl.StudentAgent.Fe
 
     public Task<ClassroomControl.Shared.Files.TransferProgress> SendToTeacherAsync(string filePath, CancellationToken cancellationToken)
     {
+        if (Throw is not null) throw Throw;
         Sent.Add(filePath);
         var done = new ClassroomControl.Shared.Files.TransferProgress("t", ClassroomControl.Shared.Files.TransferDirection.Sending, Path.GetFileName(filePath), 10, 10, ClassroomControl.Shared.Files.TransferState.Completed);
         Publish(done);

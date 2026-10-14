@@ -124,6 +124,31 @@ public sealed class FileTransferIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_student_computer_whose_administrator_allows_programs_accepts_them_but_never_starts_them()
+    {
+        var teacher = NewTeacher();
+        var agent = new HeadlessAgent(new HeadlessAgentOptions
+        {
+            ClassroomCode = _code, ComputerName = "LAB-01", StudentName = "Lab", DiscoveryPort = teacher.DiscoveryPort,
+            TeacherAddress = "127.0.0.1", TeacherPort = teacher.TcpPort,
+            Configure = o => o.AllowProgramFiles = true,
+        });
+        _disposables.Add(agent);
+        await agent.StartAsync();
+        Assert.True(await agent.WaitForStateAsync(ConnectionState.Connected, Wait));
+        var source = MakeFile("dastur.exe", 5000);
+
+        var refused = await teacher.Server.SendFileAsync(agent.DeviceId, source); // the Teacher's own switch is still off
+        Assert.Equal(ErrorCodes.FileTypeBlocked, refused.ErrorCode);
+
+        teacher.Server.Settings.AllowExecutableFiles = true;
+        var accepted = await teacher.Server.SendFileAsync(agent.DeviceId, source);
+        Assert.Equal(TransferState.Completed, accepted.State);
+        Assert.Equal(File.ReadAllBytes(source), File.ReadAllBytes(Path.Combine(StudentInbox(agent), "dastur.exe")));
+        Assert.DoesNotContain(agent.Platform.System.Calls, c => c.StartsWith("start:", StringComparison.Ordinal)); // saved only: nothing was launched
+    }
+
+    [Fact]
     public async Task The_teachers_size_limit_applies_before_anything_is_sent()
     {
         var teacher = NewTeacher();
