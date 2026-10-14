@@ -7,6 +7,7 @@ namespace ClassroomControl.TeacherApp.Services;
 public sealed class TeacherScreenShareService : IAsyncDisposable
 {
     private static readonly TimeSpan KeyFrameInterval = TimeSpan.FromSeconds(3);
+    private int _keyRequested;
     private readonly Server _server;
     private readonly IScreenSource _source;
     private readonly IFrameEncoder _encoder;
@@ -91,14 +92,19 @@ public sealed class TeacherScreenShareService : IAsyncDisposable
                 var fresh = online.Where(announced.Add).ToList();
                 if (fresh.Count > 0)
                 {
-                    _ = _server.ExecuteManyAsync(fresh, CommandNames.StartTeacherScreen, new StartTeacherScreenParameters(title));
+                    // The key frame must reach the computer AFTER its viewer opened, so another one is forced once the command was answered.
+                    _ = Task.Run(async () =>
+                    {
+                        await _server.ExecuteManyAsync(fresh, CommandNames.StartTeacherScreen, new StartTeacherScreenParameters(title)).ConfigureAwait(false);
+                        Volatile.Write(ref _keyRequested, 1);
+                    }, CancellationToken.None);
                 }
                 announced.RemoveWhere(id => !online.Contains(id));
                 if (online.Count == 0) continue;
 
                 var raw = await Task.Run(() => _source.Capture(adaptive.MaxWidth), ct).ConfigureAwait(false);
                 if (raw is null) continue;
-                var needKey = fresh.Count > 0 || Stopwatch.GetElapsedTime(lastKey) >= KeyFrameInterval;
+                var needKey = fresh.Count > 0 || Interlocked.Exchange(ref _keyRequested, 0) == 1 || Stopwatch.GetElapsedTime(lastKey) >= KeyFrameInterval;
                 var diff = differ.Compare(raw, needKey);
                 if (!diff.Changed) continue;
                 if (diff.KeyFrame) lastKey = Stopwatch.GetTimestamp();
