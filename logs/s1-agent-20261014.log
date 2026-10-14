@@ -1,0 +1,27 @@
+2026-10-14 12:59:48.862Z [INF] SettingsService: Device ID created.
+2026-10-14 12:59:48.936Z [INF] AgentService: Agent Started
+2026-10-14 12:59:49.003Z [INF] DiscoveryService: Discovery Started
+2026-10-14 12:59:49.012Z [INF] ConnectionService: Connection Started to 127.0.0.1:39701
+2026-10-14 12:59:49.042Z [INF] Lifetime: Application started. Press Ctrl+C to shut down.
+2026-10-14 12:59:49.042Z [INF] Lifetime: Hosting environment: Production
+2026-10-14 12:59:49.042Z [INF] Lifetime: Content root path: D:\a\assist1\assist1\publish\student\
+2026-10-14 12:59:49.156Z [INF] AuthenticationService: Authentication Started
+2026-10-14 12:59:49.258Z [INF] AuthenticationService: Authentication Success (registration Pending)
+2026-10-14 12:59:49.258Z [INF] AuthenticationService: Registration Request sent to Teacher
+2026-10-14 12:59:49.259Z [INF] AgentService: Waiting for Teacher approval.
+2026-10-14 12:59:49.380Z [INF] AgentService: Registration Approved
+2026-10-14 12:59:49.432Z [INF] ScreenStreamService: Screen stream started (3 fps, q50, 480px).
+2026-10-14 12:59:49.781Z [INF] ScreenStreamService: Screen stream started (3 fps, q50, 480px).
+2026-10-14 12:59:49.801Z [INF] ScreenStreamService: Screen stream stopped.
+2026-10-14 12:59:49.813Z [INF] ScreenStreamService: Screen stream stopped.
+2026-10-14 12:59:49.813Z [INF] ScreenStreamService: Screen stream started (3 fps, q50, 480px).
+2026-10-14 12:59:52.014Z [INF] RemoteInputService: Remote control started.
+2026-10-14 12:59:52.823Z [INF] RemoteInputService: Remote control stopped.
+2026-10-14 12:59:53.006Z [INF] TeacherScreenService: Teacher screen is shown.
+2026-10-14 12:59:55.875Z [INF] TeacherScreenService: Teacher screen closed.
+2026-10-14 12:59:55.941Z [INF] WindowsSystemControl: Application started on the Teacher's request: notepad.exe
+2026-10-14 12:59:57.475Z [INF] WindowsSystemControl: 1 process(es) of notepad stopped on the Teacher's request.
+2026-10-14 12:59:57.554Z [INF] FileTransferService: File Receiving: ci-transfer.bin (700000 bytes) Completed (null)
+2026-10-14 13:00:07.748Z [INF] ScreenStreamService: Screen stream stopped.
+2026-10-14 13:00:07.750Z [WRN] AgentService: Connection Lost (ConnectionLost).
+2026-10-14 13:00:07.752Z [INF] AgentService: Reconnect Started (attempt 1, in 1s)
