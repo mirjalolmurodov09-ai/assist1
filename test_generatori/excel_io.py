@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Iterable, Optional, Sequence
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from models import GeneratedTest
+from models import GeneratedTest, Student
 
 _HEAD_FILL = PatternFill("solid", fgColor="D9E2F3")
 _THIN = Side(style="thin", color="999999")
@@ -49,7 +49,8 @@ def _save(wb: Workbook, path: Path) -> None:
             f"«{path.name}» fayliga yozib bo'lmadi. Faylni yoping va qayta urinib ko'ring.") from e
 
 
-def write_answer_key(tests: Sequence[GeneratedTest], path: str | Path) -> None:
+def write_answer_key(tests: Sequence[GeneratedTest], path: str | Path,
+                     students: Optional[Sequence[Student]] = None) -> None:
     """javoblar_kaliti.xlsx: Test ID | Tartib raqam | O'quvchi | 1..Q savollarning to'g'ri javobi."""
     path = Path(path)
     wb = Workbook()
@@ -62,7 +63,8 @@ def write_answer_key(tests: Sequence[GeneratedTest], path: str | Path) -> None:
     for r, t in enumerate(tests, start=2):
         _put(ws, r, 1, t.test_id, bold=True)
         _put(ws, r, 2, t.number, center=True)
-        _put(ws, r, 3, "")
+        k = r - 2
+        _put(ws, r, 3, students[k].name if students and k < len(students) else "")
         for i, L in enumerate(t.correct_letters()):
             _put(ws, r, 4 + i, L, center=True)
     ws.column_dimensions["A"].width = 14
@@ -80,7 +82,7 @@ def write_results(rows: Iterable[dict], path: str | Path) -> None:
     wb = Workbook()
     ws = wb.active
     ws.title = "Natijalar"
-    heads = ["Test ID", "Tartib raqam", "F.I.Sh.", "To'g'ri", "Noto'g'ri", "Javobsiz",
+    heads = ["Test ID", "Tartib raqam", "F.I.Sh.", "Sinf", "Maktab", "To'g'ri", "Noto'g'ri", "Javobsiz",
              "Savollar soni", "Foiz (%)", "Baho", "Tekshirilgan vaqt"]
     for c, h in enumerate(heads, start=1):
         _put(ws, 1, c, h, bold=True, fill=_HEAD_FILL, center=True)
@@ -89,14 +91,16 @@ def write_results(rows: Iterable[dict], path: str | Path) -> None:
         _put(ws, r, 1, row["test_id"], bold=True)
         _put(ws, r, 2, row.get("number", ""), center=True)
         _put(ws, r, 3, row.get("student", "") or "")
-        _put(ws, r, 4, row["correct"], center=True)
-        _put(ws, r, 5, row["wrong"], center=True)
-        _put(ws, r, 6, row["blank"], center=True)
-        _put(ws, r, 7, row["total"], center=True)
-        _put(ws, r, 8, round(row["percent"], 1), center=True)
-        _put(ws, r, 9, row["grade"], center=True)
-        _put(ws, r, 10, row.get("checked_at", ""), center=True)
-    widths = [14, 14, 30, 9, 11, 10, 14, 10, 7, 20]
+        _put(ws, r, 4, row.get("klass", "") or "", center=True)
+        _put(ws, r, 5, row.get("school", "") or "")
+        _put(ws, r, 6, row["correct"], center=True)
+        _put(ws, r, 7, row["wrong"], center=True)
+        _put(ws, r, 8, row["blank"], center=True)
+        _put(ws, r, 9, row["total"], center=True)
+        _put(ws, r, 10, round(row["percent"], 1), center=True)
+        _put(ws, r, 11, row["grade"], center=True)
+        _put(ws, r, 12, row.get("checked_at", ""), center=True)
+    widths = [14, 14, 30, 8, 24, 9, 11, 10, 14, 10, 7, 20]
     for i, w in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = "A2"

@@ -17,11 +17,12 @@ from checker import (AnswerParseError, CheckResult, GradeScale, check_answers,
                      normalize_test_id, parse_answers)
 from excel_io import write_results
 from generator import MAX_STUDENTS
-from models import LETTERS, ParseResult
+from models import LETTERS, ParseResult, Student
 from parser import ParseError, parse_file
 from paths import default_output_dir, logs_dir, unique_path
 from service import SessionOutput, create_session
 from storage import SessionRow, Storage, StoredTest
+from students import parse_students
 
 log = logging.getLogger("testgen")
 APP_TITLE = "Test generatori"
@@ -125,7 +126,7 @@ class App(tk.Tk):
         self.tab_set = ttk.Frame(nb)
         nb.add(self.tab_gen, text="  Test tuzish  ")
         nb.add(self.tab_chk, text="  Tekshirish  ")
-        nb.add(self.tab_set, text="  Sozlamalar va sessiyalar  ")
+        nb.add(self.tab_set, text="  Sozlamalar  ")
         self._build_gen()
         self._build_chk()
         self._build_set()
@@ -194,6 +195,7 @@ class App(tk.Tk):
         self.v_seed = tk.StringVar()
         self.v_shuffle = tk.BooleanVar(value=True)
         self.v_out = tk.StringVar(value=str(default_output_dir()))
+        self.v_stu = tk.StringVar()
 
         pad = {"padx": 6, "pady": 4}
         r = 0
@@ -210,6 +212,17 @@ class App(tk.Tk):
         self.lbl_bank.grid(row=r, column=1, columnspan=2, sticky="w", padx=6)
         r += 1
         ttk.Separator(f).grid(row=r, column=0, columnspan=3, sticky="ew", pady=6)
+        r += 1
+        ttk.Label(f, text="O'quvchilar ro'yxati (ixtiyoriy):").grid(row=r, column=0, sticky="w", **pad)
+        ttk.Entry(f, textvariable=self.v_stu).grid(row=r, column=1, sticky="ew", **pad)
+        sbf = ttk.Frame(f)
+        sbf.grid(row=r, column=2, **pad)
+        ttk.Button(sbf, text="Tanlash…", command=self.choose_students).pack(side="left", padx=2)
+        ttk.Button(sbf, text="Tozalash", command=lambda: self.v_stu.set("")).pack(side="left", padx=2)
+        r += 1
+        ttk.Label(f, text="Ro'yxat: .xlsx/.csv/.txt/.docx, ustunlar: F.I.Sh. | Sinf | Maktab. Ro'yxat berilsa, "
+                          "o'quvchilar soni undan olinadi.", foreground="#555").grid(
+            row=r, column=1, columnspan=2, sticky="w", padx=6)
         r += 1
         ttk.Label(f, text="O'quvchilar soni:").grid(row=r, column=0, sticky="w", **pad)
         num = ttk.Frame(f)
@@ -228,7 +241,7 @@ class App(tk.Tk):
         sd = ttk.Frame(f)
         sd.grid(row=r, column=1, sticky="w", **pad)
         ttk.Entry(sd, textvariable=self.v_date, width=14).pack(side="left")
-        ttk.Label(sd, text="     Seed (ixtiyoriy):").pack(side="left")
+        ttk.Label(sd, text="  (ma'lumot varag'ida)    Seed (ixtiyoriy):").pack(side="left")
         ttk.Entry(sd, textvariable=self.v_seed, width=12).pack(side="left", padx=6)
         ttk.Label(sd, text="(qayta tiklash uchun)", foreground="#555").pack(side="left")
         r += 1
@@ -239,7 +252,7 @@ class App(tk.Tk):
         ttk.Entry(f, textvariable=self.v_out).grid(row=r, column=1, sticky="ew", **pad)
         ttk.Button(f, text="Tanlash…", command=self.choose_out).grid(row=r, column=2, **pad)
         r += 1
-        self.btn_gen = ttk.Button(f, text="TEST TUZISH  (PDF + javoblar kaliti)", command=self.generate)
+        self.btn_gen = ttk.Button(f, text="TEST TUZISH  (testlar PDF + o'quvchi varaqlari + javoblar kaliti)", command=self.generate)
         self.btn_gen.grid(row=r, column=0, columnspan=3, sticky="ew", padx=6, pady=(10, 4), ipady=6)
         r += 1
         self.pb = ttk.Progressbar(f, mode="determinate", maximum=100)
@@ -248,20 +261,37 @@ class App(tk.Tk):
         self.lbl_status = ttk.Label(f, text="Tayyor.")
         self.lbl_status.grid(row=r, column=0, columnspan=3, sticky="w", padx=6)
         r += 1
-        of = ttk.Frame(f)
-        of.grid(row=r, column=0, columnspan=3, sticky="w", padx=6, pady=4)
-        self.btn_open_pdf = ttk.Button(of, text="PDF ni ochish", state="disabled",
-                                       command=lambda: self._open_last("pdf_path"))
-        self.btn_open_key = ttk.Button(of, text="Javoblar kalitini ochish", state="disabled",
-                                       command=lambda: self._open_last("key_path"))
-        self.btn_open_dir = ttk.Button(of, text="Papkani ochish", state="disabled",
-                                       command=lambda: self._open_last("dir"))
-        for b in (self.btn_open_pdf, self.btn_open_key, self.btn_open_dir):
-            b.pack(side="left", padx=3)
+        self.log_box = tk.Text(f, height=4, state="disabled", wrap="word", background="#fafafa")
+        self.log_box.grid(row=r, column=0, columnspan=3, sticky="ew", padx=6, pady=(4, 2))
         r += 1
         f.rowconfigure(r, weight=1)
-        self.log_box = tk.Text(f, height=8, state="disabled", wrap="word", background="#fafafa")
-        self.log_box.grid(row=r, column=0, columnspan=3, sticky="nsew", padx=6, pady=(4, 6))
+        sf = ttk.LabelFrame(f, text="Tuzilgan testlar (vaqt bo'yicha tanlang)")
+        sf.grid(row=r, column=0, columnspan=3, sticky="nsew", padx=6, pady=(4, 6))
+        sf.columnconfigure(0, weight=1)
+        sf.rowconfigure(0, weight=1)
+        cols = ("name", "date", "n", "q", "seed", "chk")
+        self.tv_sess = ttk.Treeview(sf, columns=cols, show="headings", selectmode="browse", height=5)
+        for c, t, w in (("name", "Nomi", 300), ("date", "Tuzilgan vaqt", 140), ("n", "Testlar", 70),
+                        ("q", "Savollar", 70), ("seed", "Seed", 100), ("chk", "Tekshirilgan", 90)):
+            self.tv_sess.heading(c, text=t)
+            self.tv_sess.column(c, width=w, anchor="w" if c == "name" else "center")
+        ssb = ttk.Scrollbar(sf, orient="vertical", command=self.tv_sess.yview)
+        self.tv_sess.configure(yscrollcommand=ssb.set)
+        self.tv_sess.grid(row=0, column=0, sticky="nsew", padx=(6, 0), pady=6)
+        ssb.grid(row=0, column=1, sticky="ns", pady=6)
+        bf2 = ttk.Frame(sf)
+        bf2.grid(row=1, column=0, columnspan=2, sticky="w", padx=6, pady=(0, 6))
+        for text, what in (("Testlar PDF", "pdf"), ("O'quvchi varaqlari PDF", "info"),
+                           ("Javoblar kaliti", "key"), ("Papkani ochish", "dir")):
+            ttk.Button(bf2, text=text, command=lambda w=what: self._sess_open(w)).pack(side="left", padx=3)
+        ttk.Button(bf2, text="O'chirish", command=self._sess_delete).pack(side="left", padx=22)
+
+    def choose_students(self) -> None:
+        p = filedialog.askopenfilename(
+            title="O'quvchilar ro'yxatini tanlang",
+            filetypes=[("Ro'yxat", "*.xlsx *.csv *.txt *.docx"), ("Barcha fayllar", "*.*")])
+        if p:
+            self.v_stu.set(p)
 
     def choose_src(self) -> None:
         p = filedialog.askopenfilename(
@@ -275,14 +305,6 @@ class App(tk.Tk):
         p = filedialog.askdirectory(title="Natija papkasini tanlang", initialdir=self.v_out.get() or None)
         if p:
             self.v_out.set(p)
-
-    def _open_last(self, what: str) -> None:
-        if not self._last_out:
-            return
-        if what == "dir":
-            open_path(self._last_out.pdf_path.parent)
-        else:
-            open_path(getattr(self._last_out, what))
 
     def _stage(self, name: str, done: int, total: int) -> None:
         """Orqa oqimdan chaqiriladi: progressni asosiy oqimga uzatadi."""
@@ -330,7 +352,9 @@ class App(tk.Tk):
             src = self.v_src.get().strip().strip('"')
             if not src:
                 raise ValueError("Avval savollar faylini tanlang.")
-            n = parse_int(self.v_n.get(), "O'quvchilar soni", 1, MAX_STUDENTS)
+            stu_path = self.v_stu.get().strip().strip('"')
+            n = (parse_int(self.v_n.get(), "O'quvchilar soni", 1, MAX_STUDENTS) if not stu_path
+                 else 1)  # ro'yxat berilsa, son undan olinadi
             q = parse_int(self.v_q.get(), "Savollar soni", 1, 100000)
             seed_raw = self.v_seed.get().strip()
             seed = parse_int(seed_raw, "Seed", 0, 2**31 - 1) if seed_raw else None
@@ -348,7 +372,9 @@ class App(tk.Tk):
         self.lbl_status.configure(text="Fayl o'qilmoqda…")
         self.pb.configure(value=0)
 
-        def parsed(res: object) -> None:
+        def parsed(both: object) -> None:
+            assert isinstance(both, tuple)
+            res, students = both
             assert isinstance(res, ParseResult)
             self._parsed = res
             if res.issues:
@@ -370,27 +396,31 @@ class App(tk.Tk):
                     APP_TITLE, f"Savollar soni ({q}) bazadagi yaroqli savollar sonidan ({bank}) katta.\n"
                                f"Eng ko'pi bilan {bank} ta savol kiritish mumkin.")
                 return
-            self._log(f"Baza: {bank} ta savol. {n} ta o'quvchi, har birida {q} ta savol.")
+            n_eff = len(students) if students else n
+            self._log(f"Baza: {bank} ta savol. {n_eff} ta o'quvchi, har birida {q} ta savol.")
             self._bg(lambda: create_session(
                 res.questions, n_students=n, q_per_test=q, out_dir=out, storage=self.storage,
                 title=title, subtitle=subtitle, date=date, seed=seed, shuffle_options=shuffle,
+                students=students,
                 source_file=src, stage=self._stage), done, fail)
 
         def done(res: object) -> None:
             assert isinstance(res, SessionOutput)
             self._set_busy(False)
             self._last_out = res
-            for b in (self.btn_open_pdf, self.btn_open_key, self.btn_open_dir):
-                b.configure(state="normal")
             self.lbl_status.configure(text=f"Tayyor! {res.pages} sahifa. Seed: {res.seed}")
             self.pb.configure(value=100)
             self._log(f"PDF: {res.pdf_path}")
+            self._log(f"O'quvchi varaqlari: {res.info_pdf_path}")
             self._log(f"Javoblar kaliti: {res.key_path}")
             self._log(f"Seed: {res.seed}  (xuddi shu testlarni qayta tiklash uchun saqlang)")
             for w in res.warnings:
                 self._log("Ogohlantirish: " + w)
             self.refresh_sessions()
-            msg = (f"Testlar tayyor.\n\nPDF: {res.pdf_path}\nKalit: {res.key_path}\n\nSahifalar: {res.pages}")
+            self.tv_sess.selection_set(str(res.session_id))
+            self.tv_sess.see(str(res.session_id))
+            msg = (f"Testlar tayyor.\n\nTestlar PDF: {res.pdf_path}\nO'quvchi varaqlari: {res.info_pdf_path}\n"
+                   f"Kalit: {res.key_path}\n\nSahifalar: {res.pages}")
             if res.warnings:
                 msg += "\n\nOgohlantirish:\n" + "\n".join(res.warnings)
             messagebox.showinfo(APP_TITLE, msg)
@@ -401,7 +431,10 @@ class App(tk.Tk):
             self._log("Xatolik: " + self._friendly(e))
             messagebox.showerror(APP_TITLE, self._friendly(e))
 
-        self._bg(lambda: parse_file(src), parsed, fail)
+        def load() -> tuple:
+            return parse_file(src), (parse_students(stu_path) if stu_path else None)
+
+        self._bg(load, parsed, fail)
 
     # ------------------------------------------------------------------ 2-tab
     def _build_chk(self) -> None:
@@ -557,7 +590,12 @@ class App(tk.Tk):
             return False
         self.v_tid.set(tid)
         self._stored = st
-        self.lbl_found.configure(text=f"Topildi: № {st.number}, {len(st.texts)} ta savol", foreground="#1b6e1b")
+        who = ", ".join(x for x in (st.student, st.klass, st.school) if x)
+        self.lbl_found.configure(
+            text=f"Topildi: № {st.number}, {len(st.texts)} ta savol" + (f"  —  {who}" if who else ""),
+            foreground="#1b6e1b")
+        if st.student and not self.v_student.get().strip():
+            self.v_student.set(st.student)
         self._rebuild_grid(len(st.texts))
         self._update_counter()
         return True
@@ -732,7 +770,6 @@ class App(tk.Tk):
     def _build_set(self) -> None:
         f = self.tab_set
         f.columnconfigure(0, weight=1)
-        f.rowconfigure(1, weight=1)
         box = ttk.LabelFrame(f, text="Baholash shkalasi (foiz bo'yicha)")
         box.grid(row=0, column=0, sticky="ew", padx=8, pady=8)
         sc = self.storage.get_grade_scale()
@@ -745,25 +782,8 @@ class App(tk.Tk):
         ttk.Label(box, text="Qolgani — «2».").grid(row=0, column=9, padx=10)
         ttk.Button(box, text="Saqlash", command=self.save_scale).grid(row=0, column=10, padx=8)
 
-        sf = ttk.LabelFrame(f, text="Tuzilgan sessiyalar")
-        sf.grid(row=1, column=0, sticky="nsew", padx=8, pady=4)
-        sf.columnconfigure(0, weight=1)
-        sf.rowconfigure(0, weight=1)
-        cols = ("name", "date", "n", "q", "seed", "chk")
-        self.tv_sess = ttk.Treeview(sf, columns=cols, show="headings", selectmode="browse")
-        for c, t, w in (("name", "Nomi", 280), ("date", "Sana", 140), ("n", "Testlar", 70), ("q", "Savollar", 70),
-                        ("seed", "Seed", 100), ("chk", "Tekshirilgan", 100)):
-            self.tv_sess.heading(c, text=t)
-            self.tv_sess.column(c, width=w, anchor="w" if c == "name" else "center")
-        self.tv_sess.grid(row=0, column=0, sticky="nsew", padx=6, pady=6)
-        bf = ttk.Frame(sf)
-        bf.grid(row=1, column=0, sticky="w", padx=6, pady=(0, 6))
-        ttk.Button(bf, text="PDF ni ochish", command=lambda: self._sess_open("pdf")).pack(side="left", padx=3)
-        ttk.Button(bf, text="Kalitni ochish", command=lambda: self._sess_open("key")).pack(side="left", padx=3)
-        ttk.Button(bf, text="Papkani ochish", command=lambda: self._sess_open("dir")).pack(side="left", padx=3)
-        ttk.Button(bf, text="Sessiyani o'chirish", command=self._sess_delete).pack(side="left", padx=18)
         ttk.Label(f, text=f"Baza: {self.storage.path}\nLog: {logs_dir() / 'app.log'}", foreground="#555").grid(
-            row=2, column=0, sticky="w", padx=8, pady=6)
+            row=1, column=0, sticky="w", padx=8, pady=6)
 
     def _fill_sessions_tab(self) -> None:
         self.tv_sess.delete(*self.tv_sess.get_children())
@@ -779,23 +799,41 @@ class App(tk.Tk):
         return next((s for s in self._sessions if str(s.id) == sel[0]), None)
 
     def _sess_open(self, what: str) -> None:
+        """Ro'yxatdan tanlangan sessiyaning faylini ochadi."""
         s = self._selected_session()
         if not s:
             return
-        p = {"pdf": s.pdf_path, "key": s.key_path, "dir": str(Path(s.pdf_path).parent) if s.pdf_path else ""}[what]
+        p = {"pdf": s.pdf_path, "info": s.info_pdf_path, "key": s.key_path,
+             "dir": str(Path(s.pdf_path).parent) if s.pdf_path else ""}[what]
         if not p or not Path(p).exists():
             messagebox.showwarning(APP_TITLE, "Fayl topilmadi (ko'chirilgan yoki o'chirilgan bo'lishi mumkin).")
             return
         open_path(p)
 
     def _sess_delete(self) -> None:
+        """Tanlangan sessiyani (testlar, natijalar va yaratilgan fayllarni) o'chiradi."""
         s = self._selected_session()
         if not s:
             return
-        if messagebox.askyesno(APP_TITLE, f"«{s.name}» sessiyasi va uning barcha testlari hamda natijalari bazadan "
-                                          "o'chiriladi (PDF/Excel fayllar saqlanib qoladi). Davom etasizmi?"):
-            self.storage.delete_session(s.id)
-            self.refresh_sessions()
+        files = [Path(p) for p in (s.pdf_path, s.info_pdf_path, s.key_path) if p and Path(p).is_file()]
+        names = "\n".join(f"  • {f.name}" for f in files) or "  (fayllar topilmadi)"
+        if not messagebox.askyesno(
+                APP_TITLE,
+                f"«{s.name}» o'chiriladi:\n\n• bazadan: {s.n_students} ta test va {s.checked} ta tekshirilgan natija\n"
+                f"• kompyuterdan fayllar:\n{names}\n\nBu amalni qaytarib bo'lmaydi. Davom etasizmi?"):
+            return
+        failed = []
+        for f in files:
+            try:
+                f.unlink()
+            except OSError as e:
+                failed.append(f"{f.name}: {e}")
+        self.storage.delete_session(s.id)
+        self._log(f"Sessiya o'chirildi: {s.name}")
+        self.refresh_sessions()
+        if failed:
+            messagebox.showwarning(APP_TITLE, "Sessiya o'chirildi, lekin ba'zi fayllarni o'chirib bo'lmadi "
+                                              "(ochiq turgan bo'lishi mumkin):\n" + "\n".join(failed))
 
     def save_scale(self) -> None:
         try:

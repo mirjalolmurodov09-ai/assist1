@@ -26,7 +26,10 @@ def test_pdf_created_with_ids_and_no_plus(tmp_path):
     for t in res.tests:
         assert t.test_id in full
     assert "+" not in full
-    assert "Fan testi" in texts[0] and "F.I.Sh." in texts[0]
+    assert "Fan testi" in texts[0] and "Maktab 5" in texts[0]
+    for tx in texts:                      # F.I.Sh./Sinf/Sana qatori va doirachali varaqa yo'q
+        for banned in ("F.I.Sh", "Sinf", "Sana", "JAVOBLAR"):
+            assert banned not in tx
 
 
 def test_every_page_shows_id_and_page_numbers(tmp_path):
@@ -119,3 +122,20 @@ def test_failed_build_leaves_no_partial_file(tmp_path):
     with pytest.raises(RuntimeError):
         build_pdf(res.tests, out, progress=boom)
     assert not out.exists() and not (tmp_path / "x.pdf.part").exists()
+
+
+def test_big_id_only_on_first_page_and_continuation_has_no_header(tmp_path):
+    res = generate_tests(make_bank(120), 2, 90, seed=2)
+    out = tmp_path / "h.pdf"
+    build_pdf(res.tests, out, PdfMeta("Uzun test", "Maktab 7"))
+    reader, texts = text_of(out)
+    seen_first = set()
+    for tx, page in zip(texts, reader.pages):
+        tid = next(t.test_id for t in res.tests if t.test_id in tx)
+        if tid not in seen_first:
+            seen_first.add(tid)
+            assert "TEST ID" in tx and "Uzun test" in tx
+        else:
+            assert "TEST ID" not in tx and "Uzun test" not in tx
+            assert tx.count(tid) == 2          # chetdagi mayda ID + pastki kolontitul
+            assert tx.lstrip().startswith(tid)  # sarlavha o'rniga faqat mayda ID, keyin savollar

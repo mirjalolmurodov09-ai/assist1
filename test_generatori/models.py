@@ -70,3 +70,12 @@ class GeneratedTest:
 
     def correct_letters(self) -> list[str]:
         return [it.correct_letter for it in self.items]
+
+
+@dataclass(frozen=True)
+class Student:
+    """O'quvchi ma'lumoti (ro'yxat faylidan)."""
+
+    name: str = ""
+    klass: str = ""
+    school: str = ""

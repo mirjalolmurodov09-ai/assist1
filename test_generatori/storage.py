@@ -7,10 +7,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Sequence
 
 from checker import CheckResult, GradeScale
-from models import GeneratedTest
+from models import GeneratedTest, Student
 from paths import data_dir
 
 SCHEMA = """
@@ -24,13 +24,17 @@ CREATE TABLE IF NOT EXISTS sessions(
     seed INTEGER,
     source_file TEXT NOT NULL DEFAULT '',
     pdf_path TEXT NOT NULL DEFAULT '',
-    key_path TEXT NOT NULL DEFAULT ''
+    key_path TEXT NOT NULL DEFAULT '',
+    info_pdf_path TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS tests(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     test_id TEXT NOT NULL,
     number INTEGER NOT NULL,
+    student TEXT NOT NULL DEFAULT '',
+    klass TEXT NOT NULL DEFAULT '',
+    school TEXT NOT NULL DEFAULT '',
     UNIQUE(session_id, test_id)
 );
 CREATE TABLE IF NOT EXISTS test_items(
@@ -62,6 +66,10 @@ CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 """
 
 
+# Eski bazalarga keyin qo'shilgan ustunlar: (jadval, ustun)
+_MIGRATIONS = [("sessions", "info_pdf_path"), ("tests", "student"), ("tests", "klass"), ("tests", "school")]
+
+
 @dataclass
 class SessionRow:
     id: int
@@ -74,6 +82,7 @@ class SessionRow:
     source_file: str
     pdf_path: str
     key_path: str
+    info_pdf_path: str = ""
     checked: int = 0
 
     @property
@@ -89,6 +98,9 @@ class StoredTest:
     texts: list[str]
     options: list[list[str]]
     correct_letters: list[str]
+    student: str = ""
+    klass: str = ""
+    school: str = ""
 
 
 class Storage:
@@ -99,6 +111,10 @@ class Storage:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._conn() as c:
             c.executescript(SCHEMA)
+            for table, col in _MIGRATIONS:
+                have = {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}
+                if col not in have:
+                    c.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
@@ -114,18 +130,20 @@ class Storage:
     # ---- sessiyalar
     def create_session(self, *, name: str, title: str, n_students: int, q_per_test: int,
                        seed: int | None, source_file: str, pdf_path: str, key_path: str,
-                       tests: list[GeneratedTest]) -> int:
+                       tests: list[GeneratedTest], info_pdf_path: str = "",
+                       students: Sequence[Student] | None = None) -> int:
         """Sessiya va barcha testlarni bitta tranzaksiyada saqlaydi."""
         with self._conn() as c:
             cur = c.execute(
-                "INSERT INTO sessions(name,created_at,title,n_students,q_per_test,seed,source_file,pdf_path,key_path)"
-                " VALUES(?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO sessions(name,created_at,title,n_students,q_per_test,seed,source_file,pdf_path,key_path,"
+                "info_pdf_path) VALUES(?,?,?,?,?,?,?,?,?,?)",
                 (name, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), title, n_students, q_per_test,
-                 seed, source_file, pdf_path, key_path))
+                 seed, source_file, pdf_path, key_path, info_pdf_path))
             sid = int(cur.lastrowid)
-            for t in tests:
-                tc = c.execute("INSERT INTO tests(session_id,test_id,number) VALUES(?,?,?)",
-                               (sid, t.test_id, t.number))
+            for k, t in enumerate(tests):
+                st = students[k] if students and k < len(students) else Student()
+                tc = c.execute("INSERT INTO tests(session_id,test_id,number,student,klass,school) VALUES(?,?,?,?,?,?)",
+                               (sid, t.test_id, t.number, st.name, st.klass, st.school))
                 tpk = int(tc.lastrowid)
                 c.executemany(
                     "INSERT INTO test_items(test_pk,position,src_no,text,options_json,option_order_json,correct_letter)"
@@ -142,7 +160,7 @@ class Storage:
                 "FROM sessions s ORDER BY s.id DESC").fetchall()
         return [SessionRow(r["id"], r["name"], r["created_at"], r["title"], r["n_students"],
                            r["q_per_test"], r["seed"], r["source_file"], r["pdf_path"], r["key_path"],
-                           r["checked"]) for r in rows]
+                           r["info_pdf_path"], r["checked"]) for r in rows]
 
     def delete_session(self, session_id: int) -> None:
         with self._conn() as c:
@@ -155,7 +173,7 @@ class Storage:
     # ---- testlar
     def find_test(self, session_id: int, test_id: str) -> Optional[StoredTest]:
         with self._conn() as c:
-            t = c.execute("SELECT id, number FROM tests WHERE session_id=? AND test_id=?",
+            t = c.execute("SELECT id, number, student, klass, school FROM tests WHERE session_id=? AND test_id=?",
                           (session_id, test_id)).fetchone()
             if not t:
                 return None
@@ -165,7 +183,8 @@ class Storage:
         return StoredTest(session_id, test_id, t["number"],
                           [i["text"] for i in items],
                           [json.loads(i["options_json"]) for i in items],
-                          [i["correct_letter"] for i in items])
+                          [i["correct_letter"] for i in items],
+                          t["student"], t["klass"], t["school"])
 
     # ---- natijalar
     def get_result(self, session_id: int, test_id: str) -> Optional[sqlite3.Row]:
@@ -188,7 +207,7 @@ class Storage:
     def list_results(self, session_id: int) -> list[dict]:
         with self._conn() as c:
             rows = c.execute(
-                "SELECT r.*, t.number FROM results r LEFT JOIN tests t "
+                "SELECT r.*, t.number, t.klass, t.school FROM results r LEFT JOIN tests t "
                 "ON t.session_id=r.session_id AND t.test_id=r.test_id "
                 "WHERE r.session_id=? ORDER BY t.number, r.test_id", (session_id,)).fetchall()
         return [dict(r) for r in rows]

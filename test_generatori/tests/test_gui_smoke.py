@@ -77,3 +77,65 @@ def test_input_validation_shows_messages(app):
     app.generate()
     assert pump(app, lambda: not app._busy)
     assert app.box[-1][0] == "showerror" and "topilmadi" in app.box[-1][1]
+
+
+def _make_students(path, n):
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["F.I.Sh.", "Sinf", "Maktab"])
+    for i in range(1, n + 1):
+        ws.append([f"O'quvchi {i}", "9-A", "12-maktab"])
+    wb.save(path)
+
+
+def _generate(app, tmp_path, n_students_file=None, label="x"):
+    from pathlib import Path
+    app.v_src.set(str(Path(__file__).resolve().parent.parent / "examples" / "sample.xlsx"))
+    app.v_n.set("2")
+    app.v_q.set("5")
+    app.v_stu.set(str(n_students_file) if n_students_file else "")
+    app.v_out.set(str(tmp_path / "out"))
+    app._last_out = None
+    app.generate()
+    assert pump(app, lambda: app._last_out is not None)
+    return app._last_out
+
+
+def test_generate_with_student_list_and_autofill(app, tmp_path):
+    lst = tmp_path / "students.xlsx"
+    _make_students(lst, 6)
+    out = _generate(app, tmp_path, lst)
+    assert out.info_pdf_path.exists() and out.pdf_path.exists() and out.key_path.exists()
+    assert app._cur_session().n_students == 6            # «O'quvchilar soni» emas, ro'yxatdan
+    tid = sorted(app.storage.all_test_ids())[0]
+    app.v_tid.set(tid)
+    assert app.find_test()
+    assert app.v_student.get().startswith("O'quvchi ") and "9-A" in app.lbl_found.cget("text")
+
+
+def test_pick_older_session_open_and_delete(app, tmp_path, monkeypatch):
+    import gui
+    opened = []
+    monkeypatch.setattr(gui, "open_path", lambda p: opened.append(str(p)))
+    first = _generate(app, tmp_path)
+    second = _generate(app, tmp_path)
+    assert len(app.tv_sess.get_children()) == 2
+
+    app.tv_sess.selection_set(str(first.session_id))      # eskisini tanlaymiz (oxirgisini emas)
+    app._sess_open("pdf")
+    app._sess_open("info")
+    app._sess_open("key")
+    assert opened == [str(first.pdf_path), str(first.info_pdf_path), str(first.key_path)]
+
+    app._sess_delete()                                    # askyesno -> True
+    assert not first.pdf_path.exists() and not first.info_pdf_path.exists() and not first.key_path.exists()
+    assert second.pdf_path.exists() and second.info_pdf_path.exists()
+    assert [s.id for s in app.storage.list_sessions()] == [second.session_id]
+    assert len(app.tv_sess.get_children()) == 1
+
+
+def test_no_selection_gives_message(app):
+    app._sess_open("pdf")
+    app._sess_delete()
+    assert [m[0] for m in app.box][-2:] == ["showinfo", "showinfo"]

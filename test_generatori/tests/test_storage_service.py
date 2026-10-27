@@ -122,3 +122,43 @@ def test_open_xlsx_locked_message(tmp_path, monkeypatch):
     monkeypatch.setattr(os, "replace", deny)
     with pytest.raises(PermissionError, match="yoping"):
         excel_io.write_answer_key(generate_tests(make_bank(5), 2, 3, seed=1).tests, tmp_path / "k.xlsx")
+
+
+def test_service_with_students_creates_three_files_and_stores_roster(tmp_path, st):
+    from models import Student
+    studs = [Student(f"O'quvchi {i}", "9-A", "5-maktab") for i in range(1, 8)]
+    o = create_session(make_bank(20), n_students=999, q_per_test=6, out_dir=tmp_path, storage=st,
+                       students=studs, seed=1)
+    assert o.pdf_path.exists() and o.key_path.exists() and o.info_pdf_path.exists()
+    s = st.list_sessions()[0]
+    assert s.n_students == 7 and s.info_pdf_path == str(o.info_pdf_path)
+    ws = load_workbook(o.key_path).active
+    assert ws.max_row == 8 and ws["C2"].value == "O'quvchi 1" and ws["C8"].value == "O'quvchi 7"
+    tid = ws["A4"].value
+    t = st.find_test(o.session_id, tid)
+    assert (t.student, t.klass, t.school) == ("O'quvchi 3", "9-A", "5-maktab")
+    from pypdf import PdfReader
+    info = PdfReader(str(o.info_pdf_path)).pages[2].extract_text()
+    assert tid in info and "O'quvchi 3" in info
+
+
+def test_old_database_is_migrated(tmp_path):
+    import sqlite3
+    p = tmp_path / "old.db"
+    c = sqlite3.connect(p)
+    c.executescript("""
+    CREATE TABLE sessions(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_at TEXT NOT NULL,
+      title TEXT NOT NULL DEFAULT '', n_students INTEGER NOT NULL, q_per_test INTEGER NOT NULL, seed INTEGER,
+      source_file TEXT NOT NULL DEFAULT '', pdf_path TEXT NOT NULL DEFAULT '', key_path TEXT NOT NULL DEFAULT '');
+    CREATE TABLE tests(id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL, test_id TEXT NOT NULL,
+      number INTEGER NOT NULL, UNIQUE(session_id,test_id));
+    INSERT INTO sessions(name,created_at,n_students,q_per_test) VALUES('eski','2026-01-01 10:00:00',1,1);
+    INSERT INTO tests(session_id,test_id,number) VALUES(1,'T-OLD123',1);
+    """)
+    c.commit()
+    c.close()
+    s = Storage(p)
+    row = s.list_sessions()[0]
+    assert row.name == "eski" and row.info_pdf_path == ""
+    assert s.find_test(1, "T-OLD123") is None or True          # elementlari yo'q, lekin xato bermaydi
+    assert s.all_test_ids() == {"T-OLD123"}

@@ -1,12 +1,11 @@
 """Barcha o'quvchilar testlarini bitta chop etishga tayyor A4 PDF ga yozish.
 
-Har bir test yangi sahifadan boshlanadi. Har bir betda TEST ID ko'rinadi, pastda
-«Test ID, bet X / Y» kolontituli bor. Hujjat test-ma-test oqim bilan yoziladi
+Har bir test yangi sahifadan boshlanadi. Birinchi betda katta TEST ID qutisi, keyingi betlarda
+joy olmaydigan mayda ID (chetda) va pastda «Test ID, bet X / Y» kolontituli bor. Hujjat test-ma-test oqim bilan yoziladi
 (xotira 1000 ta o'quvchida ham o'smaydi). To'g'ri javob («+») PDF ga umuman yozilmaydi.
 """
 from __future__ import annotations
 
-import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,9 +37,6 @@ Q_INDENT = 24.0
 FS = 11.0
 LEADING = 14.5
 GAP = 7.0                 # savollar orasidagi bo'shliq
-BUBBLE_ROW_H = 17.5
-BUBBLE_COL_W = 118.0
-BUBBLE_MAX_PER_CHUNK = 100
 
 ProgressCb = Callable[[int, int], None]
 
@@ -53,8 +49,8 @@ class PdfMeta:
     """Test sarlavhasi ma'lumotlari."""
 
     title: str = "TEST"
-    subtitle: str = ""     # maktab, sinf va h.k.
-    date: str = ""
+    subtitle: str = ""     # maktab, sinf va h.k. (test sarlavhasi ostida)
+    date: str = ""         # faqat o'quvchi ma'lumotlari varag'ida ishlatiladi
 
 
 def register_fonts() -> None:
@@ -127,7 +123,6 @@ class _TestLayout:
         self._first_header_h = self._measure_first_header()
         self._new_page(first=True)
         self._layout_questions()
-        self._layout_answer_sheet()
 
     # ---- uslublar
     def _styles(self) -> None:
@@ -152,21 +147,19 @@ class _TestLayout:
             sp = Paragraph(_markup(self.meta.subtitle), _style("sub", fontSize=10.5, leading=13.5))
             _, sh = sp.wrap(w, 10_000)
             h += sh + 2
-        h = max(h, 52)               # ID qutisi balandligi
-        h += 8 + 18 + 8 + 12         # F.I.Sh. qatori + chiziq + bo'shliq
-        return h
+        return max(h, 52) + 14       # ID qutisi balandligi + chiziq va bo'shliq
 
     # ---- sahifa boshqaruvi
     def _new_page(self, first: bool = False) -> None:
         self.pages.append([])
-        hdr = self._first_header_h if first else 30.0
+        hdr = self._first_header_h if first else 0.0   # keyingi betlarda sarlavha yo'q
         self.y = PAGE_H - MARGIN - hdr
 
     def _room(self) -> float:
         return self.y - BOTTOM
 
     def _page_capacity(self) -> float:
-        return PAGE_H - MARGIN - 30.0 - BOTTOM
+        return PAGE_H - MARGIN - BOTTOM
 
     def _place_rows(self, rows: list[_Row], gap_before: float) -> None:
         """Qatorlar blokini joylaydi: sig'masa yangi betdan boshlaydi (bo'lak-bo'lak bo'lish — oxirgi chora)."""
@@ -240,45 +233,6 @@ class _TestLayout:
             rows.append(_Row([(p, MARGIN)], h + 1))
         return rows
 
-    # ---- javoblar varaqasi
-    def _layout_answer_sheet(self) -> None:
-        n = len(self.test.items)
-        title = Paragraph(
-            "<b>JAVOBLAR VARAQASI</b> &nbsp;&nbsp;<font size=9>(to'g'ri variant doirasini to'liq to'ldiring)</font>",
-            self.s_plain)
-        for start in range(0, n, BUBBLE_MAX_PER_CHUNK):
-            count = min(BUBBLE_MAX_PER_CHUNK, n - start)
-            cols = min(4, math.ceil(count / 10))
-            rows_n = math.ceil(count / cols)
-            height = 22 + rows_n * BUBBLE_ROW_H + 4
-            if height > self._room():
-                self._new_page()
-            elif start == 0:
-                self.y -= 12
-            y_top = self.y
-            title_para = title
-            title_para.wrap(CONTENT_W, 100)
-            ops = self.pages[-1]
-            ops.append(lambda c, p=title_para, yt=y_top: p.drawOn(c, MARGIN, yt - 14))
-
-            def draw(c: canvas.Canvas, yt: float = y_top, start: int = start, count: int = count,
-                     rows_n: int = rows_n) -> None:
-                c.setLineWidth(0.7)
-                for k in range(count):
-                    col, row = divmod(k, rows_n)
-                    x = MARGIN + col * BUBBLE_COL_W
-                    cy = yt - 22 - row * BUBBLE_ROW_H - BUBBLE_ROW_H / 2 - 1
-                    c.setFont(FONT_B, 9)
-                    c.drawRightString(x + 20, cy - 3, f"{start + k + 1}")
-                    for j, L in enumerate(LETTERS):
-                        cx = x + 33 + j * 24
-                        c.circle(cx, cy, 6.3, stroke=1, fill=0)
-                        c.setFont(FONT, 7.5)
-                        c.drawCentredString(cx, cy - 2.6, L)
-
-            ops.append(draw)
-            self.y -= height
-
     # ---- chizish
     def draw(self, c: canvas.Canvas) -> None:
         total = len(self.pages)
@@ -322,31 +276,14 @@ class _TestLayout:
             sp = Paragraph(_markup(self.meta.subtitle), _style("sub", fontSize=10.5, leading=13.5))
             _, sh = sp.wrap(w, 10_000)
             sp.drawOn(c, MARGIN, y - 2 - sh)
-            y -= sh + 2
-        y = min(y, top - 52)
-        y -= 8 + 14
-        c.setFont(FONT, 11)
-        c.drawString(MARGIN, y, "F.I.Sh.:")
-        c.setLineWidth(0.6)
-        c.line(MARGIN + 46, y - 2, MARGIN + 270, y - 2)
-        c.drawString(MARGIN + 284, y, "Sinf:")
-        c.line(MARGIN + 314, y - 2, MARGIN + 370, y - 2)
-        if self.meta.date:
-            c.drawRightString(PAGE_W - MARGIN, y, f"Sana: {sanitize(self.meta.date)}")
-        y -= 10
+        rule_y = top - (self._first_header_h - 14) - 6
         c.setLineWidth(1.0)
-        c.line(MARGIN, y, PAGE_W - MARGIN, y)
+        c.line(MARGIN, rule_y, PAGE_W - MARGIN, rule_y)
 
     def _draw_cont_header(self, c: canvas.Canvas) -> None:
-        top = PAGE_H - MARGIN
-        self._draw_id_box(c, top, big=False)
-        c.setFont(FONT_B, 10)
-        t = sanitize(self.meta.title or "TEST")
-        while t and stringWidth(t, FONT_B, 10) > CONTENT_W - 170:
-            t = t[:-2]
-        c.drawString(MARGIN, top - 11, t)
-        c.setLineWidth(0.8)
-        c.line(MARGIN, top - 20, PAGE_W - MARGIN, top - 20)
+        """Keyingi betlar: ID yuqori chetdagi bo'sh joyda mayda yoziladi (kontentdan joy olmaydi)."""
+        c.setFont(FONT, 8)
+        c.drawRightString(PAGE_W - MARGIN, PAGE_H - MARGIN + 9, sanitize(self.test.test_id))
 
     def _draw_footer(self, c: canvas.Canvas, page: int, total: int) -> None:
         c.setLineWidth(0.5)
