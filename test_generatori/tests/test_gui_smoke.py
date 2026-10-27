@@ -97,6 +97,7 @@ def _generate(app, tmp_path, n_students_file=None, label="x"):
     app.v_stu.set(str(n_students_file) if n_students_file else "")
     app.v_out.set(str(tmp_path / "out"))
     app._last_out = None
+    app.v_docx.set(True)
     app.generate()
     assert pump(app, lambda: app._last_out is not None)
     return app._last_out
@@ -126,11 +127,12 @@ def test_pick_older_session_open_and_delete(app, tmp_path, monkeypatch):
     app._sess_open("pdf")
     app._sess_open("info")
     app._sess_open("key")
-    assert opened == [str(first.pdf_path), str(first.info_pdf_path), str(first.key_path)]
+    app._sess_open("docx")
+    assert opened == [str(first.pdf_path), str(first.info_pdf_path), str(first.key_path), str(first.docx_path)]
 
     app._sess_delete()                                    # askyesno -> True
-    assert not first.pdf_path.exists() and not first.info_pdf_path.exists() and not first.key_path.exists()
-    assert second.pdf_path.exists() and second.info_pdf_path.exists()
+    assert not any(p.exists() for p in (first.pdf_path, first.info_pdf_path, first.key_path, first.docx_path))
+    assert second.pdf_path.exists() and second.info_pdf_path.exists() and second.docx_path.exists()
     assert [s.id for s in app.storage.list_sessions()] == [second.session_id]
     assert len(app.tv_sess.get_children()) == 1
 

@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS sessions(
     source_file TEXT NOT NULL DEFAULT '',
     pdf_path TEXT NOT NULL DEFAULT '',
     key_path TEXT NOT NULL DEFAULT '',
-    info_pdf_path TEXT NOT NULL DEFAULT ''
+    info_pdf_path TEXT NOT NULL DEFAULT '',
+    docx_path TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS tests(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,7 +68,7 @@ CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 
 
 # Eski bazalarga keyin qo'shilgan ustunlar: (jadval, ustun)
-_MIGRATIONS = [("sessions", "info_pdf_path"), ("tests", "student"), ("tests", "klass"), ("tests", "school")]
+_MIGRATIONS = [("sessions", "info_pdf_path"), ("sessions", "docx_path"), ("tests", "student"), ("tests", "klass"), ("tests", "school")]
 
 
 @dataclass
@@ -83,6 +84,7 @@ class SessionRow:
     pdf_path: str
     key_path: str
     info_pdf_path: str = ""
+    docx_path: str = ""
     checked: int = 0
 
     @property
@@ -130,15 +132,15 @@ class Storage:
     # ---- sessiyalar
     def create_session(self, *, name: str, title: str, n_students: int, q_per_test: int,
                        seed: int | None, source_file: str, pdf_path: str, key_path: str,
-                       tests: list[GeneratedTest], info_pdf_path: str = "",
+                       tests: list[GeneratedTest], info_pdf_path: str = "", docx_path: str = "",
                        students: Sequence[Student] | None = None) -> int:
         """Sessiya va barcha testlarni bitta tranzaksiyada saqlaydi."""
         with self._conn() as c:
             cur = c.execute(
                 "INSERT INTO sessions(name,created_at,title,n_students,q_per_test,seed,source_file,pdf_path,key_path,"
-                "info_pdf_path) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                "info_pdf_path,docx_path) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                 (name, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), title, n_students, q_per_test,
-                 seed, source_file, pdf_path, key_path, info_pdf_path))
+                 seed, source_file, pdf_path, key_path, info_pdf_path, docx_path))
             sid = int(cur.lastrowid)
             for k, t in enumerate(tests):
                 st = students[k] if students and k < len(students) else Student()
@@ -160,7 +162,7 @@ class Storage:
                 "FROM sessions s ORDER BY s.id DESC").fetchall()
         return [SessionRow(r["id"], r["name"], r["created_at"], r["title"], r["n_students"],
                            r["q_per_test"], r["seed"], r["source_file"], r["pdf_path"], r["key_path"],
-                           r["info_pdf_path"], r["checked"]) for r in rows]
+                           r["info_pdf_path"], r["docx_path"], r["checked"]) for r in rows]
 
     def delete_session(self, session_id: int) -> None:
         with self._conn() as c:

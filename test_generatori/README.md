@@ -47,6 +47,11 @@ davom etish yoki to'xtatish mumkin. `+` belgisi PDF'ga umuman chiqmaydi.
      ikki tomonlama chop etganda keyingi o'quvchi testi aralashib ketmaydi. Dastur toq betni avval shriftni biroz
      kichraytirib (eng ko'pi ~20 %) bittaga kamaytiradi (3→2, 5→4), bo'lmasa kattalashtirib bittaga ko'paytiradi
      (3→4); ikkalasi ham bo'lmasa oxiriga bo'sh bet qo'shadi. Savollar hech qachon yo'qolmaydi.
+   * `testlar_<vaqt>.docx` — shu testlarning **tahrirlanadigan Word nusxasi** (katakcha yoqilgan bo'lsa, standart).
+     Har bir test alohida bo'lim (section): birinchi betda sarlavha va katta TEST ID qutisi, keyingi betlarda yuqorida
+     mayda ID, pastda ID. Juft sahifa rejimida har bir test «toq betdan boshlanadigan» bo'lim bo'ladi — Word o'zi
+     kerak joyda bo'sh bet qo'shadi, shunda ikki tomonlama chopda testlar aralashmaydi. Word faylida sahifalar soni
+     Word maketiga bog'liq, shuning uchun PDF dagi siqish/yoyish ishlamaydi; aniq natija uchun PDF dan foydalaning.
    * `oquvchilar_<vaqt>.pdf` — har bir o'quvchi uchun **alohida sahifa**: F.I.Sh., sinf, maktab va katta Test ID
      (ro'yxat berilmasa, qo'lda yozish uchun bo'sh chiziqlar). Hammasi bitta PDF da.
    * `javoblar_kaliti_<vaqt>.xlsx` — faqat o'qituvchi uchun.
@@ -54,7 +59,7 @@ davom etish yoki to'xtatish mumkin. `+` belgisi PDF'ga umuman chiqmaydi.
    (sarlavha bo'lsa ustunlar nomidan aniqlanadi, bo'lmasa shu tartibda olinadi; `.txt` da faqat ismlar bo'lishi mumkin).
    Ro'yxat berilsa, o'quvchilar soni undan olinadi va i-test i-o'quvchiga biriktiriladi.
 4. **Tuzilgan testlar** paneli (Test tuzish tabining pastida): barcha oldingi sessiyalar vaqti bilan turadi.
-   Istalganini tanlab «Testlar PDF», «O'quvchi varaqlari PDF», «Javoblar kaliti» yoki papkasini ochish mumkin.
+   Istalganini tanlab «Testlar PDF», «Testlar Word», «O'quvchi varaqlari PDF», «Javoblar kaliti» yoki papkasini ochish mumkin.
    **«O'chirish»** sessiyani bazadan (testlar va natijalar) hamda yaratilgan 3 ta faylni o'chiradi — avval nimalar
    o'chirilishini ko'rsatib, tasdiq so'raydi.
 5. **Tekshirish** tabi: sessiyani tanlang → Test ID kiriting (harf registri va bo'shliq farqi yo'q; topilganda
@@ -102,6 +107,9 @@ bo'lmasa, uy papkasidagi `TestGeneratori` ga).
   ustunida esa B deb olinadi.
 * Shrift: DejaVu Sans (`fonts/`), lotin, kirill va o'zbek harflarini qamrab oladi; shriftda yo'q belgi `?` bilan almashtiriladi.
 * Ishlash tezligi: 1000 ta o'quvchi × 30 savol ≈ 3000 sahifa, taxminan 40 soniya, ~150 MB xotira.
+* Word nusxasi: 1000 o'quvchi × 30 savol ≈ 33 soniya va ~700 MB xotira. «Toq betdan boshlash» Word va WPS da ishlaydi;
+  LibreOffice bu bo'lim turini e'tiborsiz qoldiradi (u yerda PDF dan foydalaning). Faylni Word'da ochganda "bet" raqamlari
+  avtomatik yangilanadi.
 * Juft sahifa rejimida ayrim testlar shrifti boshqalarnikidan biroz farq qilishi mumkin (siqilgan yoki kattalashgan);
   rejim o'chirilsa hamma testlar bir xil o'lchamda, lekin sahifalar soni toq bo'lishi mumkin. Rejim PDF yaratishni
   taxminan 2–3 marta sekinlashtiradi (300 ta × 40 savol ≈ 23 soniya).

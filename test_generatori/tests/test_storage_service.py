@@ -172,3 +172,15 @@ def test_service_even_pages_default_and_switch(tmp_path, st):
                          even_pages=False)
     assert on.pages % 2 == 0 and len(PdfReader(str(on.pdf_path)).pages) == on.pages
     assert off.pages == len(PdfReader(str(off.pdf_path)).pages)
+
+
+def test_service_docx_optional_and_stored(tmp_path, st):
+    from docx import Document
+    bank = make_bank(30)
+    no = create_session(bank, n_students=3, q_per_test=10, out_dir=tmp_path / "n", storage=st, seed=1)
+    yes = create_session(bank, n_students=3, q_per_test=10, out_dir=tmp_path / "y", storage=st, seed=1,
+                         make_docx=True)
+    assert no.docx_path is None and yes.docx_path.exists() and yes.docx_path.suffix == ".docx"
+    assert len(Document(str(yes.docx_path)).sections) == 3
+    rows = {s.id: s for s in st.list_sessions()}
+    assert rows[no.session_id].docx_path == "" and rows[yes.session_id].docx_path == str(yes.docx_path)

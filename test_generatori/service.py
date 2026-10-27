@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional
 
+from docx_builder import build_docx
 from excel_io import write_answer_key
 from generator import GenerationResult, generate_tests, validate_params
 from models import Question, Student
@@ -27,6 +28,7 @@ class SessionOutput:
     seed: int
     pages: int
     warnings: list[str] = field(default_factory=list)
+    docx_path: Optional[Path] = None
 
 
 def create_session(
@@ -43,6 +45,7 @@ def create_session(
     shuffle_options: bool = True,
     students: Optional[list[Student]] = None,
     even_pages: bool = True,
+    make_docx: bool = False,
     source_file: str = "",
     stage: Optional[Callable[[str, int, int], None]] = None,
 ) -> SessionOutput:
@@ -74,12 +77,17 @@ def create_session(
     pdf_path = unique_path(out, f"testlar_{stamp}", ".pdf")
     key_path = unique_path(out, f"javoblar_kaliti_{stamp}", ".xlsx")
     info_path = unique_path(out, f"oquvchilar_{stamp}", ".pdf")
+    docx_path = unique_path(out, f"testlar_{stamp}", ".docx") if make_docx else None
     meta = PdfMeta(title=title or "TEST", subtitle=subtitle, date=date or datetime.now().strftime("%d.%m.%Y"))
 
     report("PDF yozilmoqda", 0, n_students)
     try:
         pages = build_pdf(gen.tests, pdf_path, meta, progress=lambda d, t: report("PDF yozilmoqda", d, t),
                          even_pages=even_pages)
+        if docx_path:
+            report("Word fayl yozilmoqda", 0, n_students)
+            build_docx(gen.tests, docx_path, meta, progress=lambda d, t: report("Word fayl yozilmoqda", d, t),
+                       even_pages=even_pages)
         report("O'quvchi varaqlari yozilmoqda", 0, n_students)
         build_info_pdf(gen.tests, students, info_path, meta,
                        progress=lambda d, t: report("O'quvchi varaqlari yozilmoqda", d, t))
@@ -90,10 +98,11 @@ def create_session(
         sid = storage.create_session(
             name=name, title=title, n_students=n_students, q_per_test=q_per_test, seed=gen.seed,
             source_file=source_file, pdf_path=str(pdf_path), key_path=str(key_path), tests=gen.tests,
-            info_pdf_path=str(info_path), students=students)
+            info_pdf_path=str(info_path), students=students,
+            docx_path=str(docx_path) if docx_path else "")
     except BaseException:
         # yarim qolgan fayllarni tozalaymiz
-        for p in (pdf_path, key_path, info_path):
+        for p in filter(None, (pdf_path, key_path, info_path, docx_path)):
             try:
                 p.unlink()
             except OSError:
@@ -101,4 +110,4 @@ def create_session(
         raise
     report("Tayyor", 1, 1)
     log.info("Sessiya %s yaratildi: %d test, PDF=%s", sid, n_students, pdf_path)
-    return SessionOutput(sid, pdf_path, key_path, info_path, gen.seed, pages, gen.warnings)
+    return SessionOutput(sid, pdf_path, key_path, info_path, gen.seed, pages, gen.warnings, docx_path)

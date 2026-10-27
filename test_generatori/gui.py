@@ -195,6 +195,7 @@ class App(tk.Tk):
         self.v_seed = tk.StringVar()
         self.v_shuffle = tk.BooleanVar(value=True)
         self.v_even = tk.BooleanVar(value=True)
+        self.v_docx = tk.BooleanVar(value=True)
         self.v_out = tk.StringVar(value=str(default_output_dir()))
         self.v_stu = tk.StringVar()
 
@@ -252,11 +253,14 @@ class App(tk.Tk):
         ttk.Checkbutton(f, text="Har bir o'quvchi testi juft sahifa bo'lsin (ikki tomonlama chop etish uchun)",
                         variable=self.v_even).grid(row=r, column=1, columnspan=2, sticky="w", **pad)
         r += 1
+        ttk.Checkbutton(f, text="Testlarning Word (.docx) nusxasini ham yaratish (tahrirlash mumkin)",
+                        variable=self.v_docx).grid(row=r, column=1, columnspan=2, sticky="w", **pad)
+        r += 1
         ttk.Label(f, text="Natija papkasi:").grid(row=r, column=0, sticky="w", **pad)
         ttk.Entry(f, textvariable=self.v_out).grid(row=r, column=1, sticky="ew", **pad)
         ttk.Button(f, text="Tanlash…", command=self.choose_out).grid(row=r, column=2, **pad)
         r += 1
-        self.btn_gen = ttk.Button(f, text="TEST TUZISH  (testlar PDF + o'quvchi varaqlari + javoblar kaliti)", command=self.generate)
+        self.btn_gen = ttk.Button(f, text="TEST TUZISH  (testlar + o'quvchi varaqlari + javoblar kaliti)", command=self.generate)
         self.btn_gen.grid(row=r, column=0, columnspan=3, sticky="ew", padx=6, pady=(10, 4), ipady=6)
         r += 1
         self.pb = ttk.Progressbar(f, mode="determinate", maximum=100)
@@ -285,7 +289,7 @@ class App(tk.Tk):
         ssb.grid(row=0, column=1, sticky="ns", pady=6)
         bf2 = ttk.Frame(sf)
         bf2.grid(row=1, column=0, columnspan=2, sticky="w", padx=6, pady=(0, 6))
-        for text, what in (("Testlar PDF", "pdf"), ("O'quvchi varaqlari PDF", "info"),
+        for text, what in (("Testlar PDF", "pdf"), ("Testlar Word", "docx"), ("O'quvchi varaqlari PDF", "info"),
                            ("Javoblar kaliti", "key"), ("Papkani ochish", "dir")):
             ttk.Button(bf2, text=text, command=lambda w=what: self._sess_open(w)).pack(side="left", padx=3)
         ttk.Button(bf2, text="O'chirish", command=self._sess_delete).pack(side="left", padx=22)
@@ -372,7 +376,7 @@ class App(tk.Tk):
         # Tk o'zgaruvchilari faqat asosiy oqimda o'qiladi
         title, subtitle = self.v_title.get().strip(), self.v_sub.get().strip()
         date, shuffle = self.v_date.get().strip(), bool(self.v_shuffle.get())
-        even = bool(self.v_even.get())
+        even, want_docx = bool(self.v_even.get()), bool(self.v_docx.get())
         self._set_busy(True)
         self.lbl_status.configure(text="Fayl o'qilmoqda…")
         self.pb.configure(value=0)
@@ -406,7 +410,7 @@ class App(tk.Tk):
             self._bg(lambda: create_session(
                 res.questions, n_students=n, q_per_test=q, out_dir=out, storage=self.storage,
                 title=title, subtitle=subtitle, date=date, seed=seed, shuffle_options=shuffle,
-                students=students, even_pages=even,
+                students=students, even_pages=even, make_docx=want_docx,
                 source_file=src, stage=self._stage), done, fail)
 
         def done(res: object) -> None:
@@ -416,6 +420,8 @@ class App(tk.Tk):
             self.lbl_status.configure(text=f"Tayyor! {res.pages} sahifa. Seed: {res.seed}")
             self.pb.configure(value=100)
             self._log(f"PDF: {res.pdf_path}")
+            if res.docx_path:
+                self._log(f"Word: {res.docx_path}")
             self._log(f"O'quvchi varaqlari: {res.info_pdf_path}")
             self._log(f"Javoblar kaliti: {res.key_path}")
             self._log(f"Seed: {res.seed}  (xuddi shu testlarni qayta tiklash uchun saqlang)")
@@ -424,8 +430,9 @@ class App(tk.Tk):
             self.refresh_sessions()
             self.tv_sess.selection_set(str(res.session_id))
             self.tv_sess.see(str(res.session_id))
-            msg = (f"Testlar tayyor.\n\nTestlar PDF: {res.pdf_path}\nO'quvchi varaqlari: {res.info_pdf_path}\n"
-                   f"Kalit: {res.key_path}\n\nSahifalar: {res.pages}")
+            word = f"Testlar Word: {res.docx_path}\n" if res.docx_path else ""
+            msg = (f"Testlar tayyor.\n\nTestlar PDF: {res.pdf_path}\n{word}O'quvchi varaqlari: {res.info_pdf_path}\n"
+                   f"Kalit: {res.key_path}\n\nSahifalar (PDF): {res.pages}")
             if res.warnings:
                 msg += "\n\nOgohlantirish:\n" + "\n".join(res.warnings)
             messagebox.showinfo(APP_TITLE, msg)
@@ -808,7 +815,7 @@ class App(tk.Tk):
         s = self._selected_session()
         if not s:
             return
-        p = {"pdf": s.pdf_path, "info": s.info_pdf_path, "key": s.key_path,
+        p = {"pdf": s.pdf_path, "docx": s.docx_path, "info": s.info_pdf_path, "key": s.key_path,
              "dir": str(Path(s.pdf_path).parent) if s.pdf_path else ""}[what]
         if not p or not Path(p).exists():
             messagebox.showwarning(APP_TITLE, "Fayl topilmadi (ko'chirilgan yoki o'chirilgan bo'lishi mumkin).")
@@ -820,7 +827,8 @@ class App(tk.Tk):
         s = self._selected_session()
         if not s:
             return
-        files = [Path(p) for p in (s.pdf_path, s.info_pdf_path, s.key_path) if p and Path(p).is_file()]
+        files = [Path(p) for p in (s.pdf_path, s.docx_path, s.info_pdf_path, s.key_path)
+                 if p and Path(p).is_file()]
         names = "\n".join(f"  • {f.name}" for f in files) or "  (fayllar topilmadi)"
         if not messagebox.askyesno(
                 APP_TITLE,
