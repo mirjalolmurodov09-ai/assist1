@@ -194,6 +194,7 @@ class App(tk.Tk):
         self.v_date = tk.StringVar(value=datetime.now().strftime("%d.%m.%Y"))
         self.v_seed = tk.StringVar()
         self.v_shuffle = tk.BooleanVar(value=True)
+        self.v_even = tk.BooleanVar(value=True)
         self.v_out = tk.StringVar(value=str(default_output_dir()))
         self.v_stu = tk.StringVar()
 
@@ -247,6 +248,9 @@ class App(tk.Tk):
         r += 1
         ttk.Checkbutton(f, text="Har bir savolning variantlarini ham aralashtirish",
                         variable=self.v_shuffle).grid(row=r, column=1, sticky="w", **pad)
+        r += 1
+        ttk.Checkbutton(f, text="Har bir o'quvchi testi juft sahifa bo'lsin (ikki tomonlama chop etish uchun)",
+                        variable=self.v_even).grid(row=r, column=1, columnspan=2, sticky="w", **pad)
         r += 1
         ttk.Label(f, text="Natija papkasi:").grid(row=r, column=0, sticky="w", **pad)
         ttk.Entry(f, textvariable=self.v_out).grid(row=r, column=1, sticky="ew", **pad)
@@ -368,6 +372,7 @@ class App(tk.Tk):
         # Tk o'zgaruvchilari faqat asosiy oqimda o'qiladi
         title, subtitle = self.v_title.get().strip(), self.v_sub.get().strip()
         date, shuffle = self.v_date.get().strip(), bool(self.v_shuffle.get())
+        even = bool(self.v_even.get())
         self._set_busy(True)
         self.lbl_status.configure(text="Fayl o'qilmoqda…")
         self.pb.configure(value=0)
@@ -401,7 +406,7 @@ class App(tk.Tk):
             self._bg(lambda: create_session(
                 res.questions, n_students=n, q_per_test=q, out_dir=out, storage=self.storage,
                 title=title, subtitle=subtitle, date=date, seed=seed, shuffle_options=shuffle,
-                students=students,
+                students=students, even_pages=even,
                 source_file=src, stage=self._stage), done, fail)
 
         def done(res: object) -> None:

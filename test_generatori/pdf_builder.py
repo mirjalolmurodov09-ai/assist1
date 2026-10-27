@@ -37,6 +37,9 @@ Q_INDENT = 24.0
 FS = 11.0
 LEADING = 14.5
 GAP = 7.0                 # savollar orasidagi bo'shliq
+# Juft sahifa uchun masshtablar: avval siqib (kamroq bet), bo'lmasa kengaytirib (ko'proq bet) ko'riladi
+SHRINK_STEPS = (0.95, 0.9, 0.85, 0.8)
+EXPAND_STEPS = (1.05, 1.1, 1.15, 1.2, 1.25)
 
 ProgressCb = Callable[[int, int], None]
 
@@ -113,9 +116,14 @@ class _Row:
 class _TestLayout:
     """Bitta testni sahifalarga joylaydi (chizishdan oldin sahifalar sonini bilish uchun)."""
 
-    def __init__(self, test: GeneratedTest, meta: PdfMeta) -> None:
+    def __init__(self, test: GeneratedTest, meta: PdfMeta, scale: float = 1.0, pad_blank: bool = False) -> None:
         self.test = test
         self.meta = meta
+        self.scale = scale
+        self.fs = FS * scale                    # shrift o'lchami
+        self.leading = LEADING * scale
+        self.gap = GAP * scale
+        self.q_indent = Q_INDENT * max(scale, 0.85)
         self.pages: list[list[Callable[[canvas.Canvas], None]]] = []
         self.y = 0.0
         self.top_offsets: list[float] = []
@@ -123,14 +131,22 @@ class _TestLayout:
         self._first_header_h = self._measure_first_header()
         self._new_page(first=True)
         self._layout_questions()
+        if pad_blank and len(self.pages) % 2 == 1:
+            self._add_blank_page()
+
+    def _add_blank_page(self) -> None:
+        """Juft sahifa uchun oxiriga bo'sh bet qo'shadi (ikki tomonlama chopda keyingi test aralashmasin)."""
+        self.pages.append([lambda c: (c.setFont(FONT, 9),
+                                      c.drawCentredString(PAGE_W / 2, PAGE_H / 2,
+                                                          "Ikki tomonlama chop etish uchun bo'sh qoldirilgan bet"))])
 
     # ---- uslublar
     def _styles(self) -> None:
-        self.s_q = _style("q", leftIndent=Q_INDENT, bulletIndent=0, bulletFontName=FONT_B,
-                          bulletFontSize=FS)
-        self.s_opt_list = _style("ol", leftIndent=Q_INDENT + 16, bulletIndent=Q_INDENT,
-                                 bulletFontName=FONT_B, bulletFontSize=FS)
-        self.s_plain = _style("pl")
+        kw = dict(fontSize=self.fs, leading=self.leading)
+        self.s_q = _style("q", leftIndent=self.q_indent, bulletIndent=0, bulletFontName=FONT_B,
+                          bulletFontSize=self.fs, **kw)
+        self.s_opt_list = _style("ol", leftIndent=self.q_indent + 16 * self.scale, bulletIndent=self.q_indent,
+                                 bulletFontName=FONT_B, bulletFontSize=self.fs, **kw)
 
     # ---- sarlavha
     def _title_para(self, width: float) -> Paragraph:
@@ -196,16 +212,17 @@ class _TestLayout:
             _, qh = qp.wrap(CONTENT_W - 0, 10_000)
             rows.append(_Row([(qp, MARGIN)], qh + 2))
             rows.extend(self._option_rows(item.options))
-            self._place_rows(rows, GAP)
+            self._place_rows(rows, self.gap)
 
     def _option_rows(self, options: tuple[str, ...]) -> list[_Row]:
-        x0 = MARGIN + Q_INDENT
-        avail = CONTENT_W - Q_INDENT
+        x0 = MARGIN + self.q_indent
+        avail = CONTENT_W - self.q_indent
+        fs, lead = self.fs, self.leading
         texts = [sanitize(o) for o in options]
         multiline = any("\n" in t for t in texts)
-        widths = [stringWidth(f"{LETTERS[i]}) ", FONT_B, FS) + stringWidth(t, FONT, FS) + 2
+        widths = [stringWidth(f"{LETTERS[i]}) ", FONT_B, fs) + stringWidth(t, FONT, fs) + 2
                   for i, t in enumerate(texts)]
-        s_cell = _style("cell")
+        s_cell = _style("cell", fontSize=fs, leading=lead)
 
         def cell(i: int, w: float) -> Paragraph:
             p = Paragraph(f"<b>{LETTERS[i]})</b> {_markup(options[i])}", s_cell)
@@ -219,12 +236,12 @@ class _TestLayout:
                 for i, w in enumerate(widths):
                     cells.append((cell(i, w + 6), x))
                     x += w + pad
-                return [_Row(cells, LEADING + 1)]
+                return [_Row(cells, lead + 1)]
             half = (avail - pad) / 2
             if max(widths) <= half:                            # 2x2 jadval
                 rows = []
                 for r in (0, 2):
-                    rows.append(_Row([(cell(r, half), x0), (cell(r + 1, half), x0 + half + pad)], LEADING + 1))
+                    rows.append(_Row([(cell(r, half), x0), (cell(r + 1, half), x0 + half + pad)], lead + 1))
                 return rows
         rows = []                                              # ro'yxat (hammasi pastma-past)
         for i in range(len(options)):
@@ -292,6 +309,32 @@ class _TestLayout:
         c.drawCentredString(PAGE_W / 2, FOOTER_Y, f"{sanitize(self.test.test_id)}, bet {page} / {total}")
 
 
+def _layout_for(test: GeneratedTest, meta: PdfMeta, even: bool) -> _TestLayout:
+    """Testni joylaydi. `even=True` bo'lsa sahifalar soni juft bo'lishga harakat qilinadi:
+    1) shriftni biroz kichraytirib bitta betga kamaytirish (siqish),
+    2) bo'lmasa kattalashtirib bitta betga ko'paytirish (yoyish),
+    3) bo'lmasa oxiriga bo'sh bet qo'shish."""
+    base = _TestLayout(test, meta)
+    n = len(base.pages)
+    if not even or n % 2 == 0:
+        return base
+    if n > 1:
+        for sc in SHRINK_STEPS:
+            cand = _TestLayout(test, meta, scale=sc)
+            p = len(cand.pages)
+            if p % 2 == 0 and p < n:
+                return cand
+    best: Optional[_TestLayout] = None
+    for sc in EXPAND_STEPS:
+        cand = _TestLayout(test, meta, scale=sc)
+        p = len(cand.pages)
+        if p == n + 1:
+            best = cand                      # eng kattasini saqlaymiz
+        elif p > n + 1:
+            break
+    return best or _TestLayout(test, meta, pad_blank=True)
+
+
 # --------------------------------------------------------------------------
 # Ochiq funksiya
 # --------------------------------------------------------------------------
@@ -300,8 +343,11 @@ def build_pdf(
     path: str | Path,
     meta: Optional[PdfMeta] = None,
     progress: Optional[ProgressCb] = None,
+    even_pages: bool = False,
 ) -> int:
     """Barcha testlarni bitta PDF ga yozadi. Sahifalar umumiy sonini qaytaradi.
+
+    `even_pages=True` — har bir o'quvchining testi juft sahifa bo'ladi (ikki tomonlama chop uchun).
 
     Fayl avval `.part` nomi bilan yoziladi, tugagach asl nomga o'tkaziladi —
     xato bo'lsa yarim fayl qolmaydi.
@@ -316,7 +362,7 @@ def build_pdf(
         c.setTitle(sanitize(meta.title or "Test"))
         c.setAuthor("Test generatori")
         for i, t in enumerate(tests, start=1):
-            layout = _TestLayout(t, meta)
+            layout = _layout_for(t, meta, even_pages)
             layout.draw(c)
             pages_total += len(layout.pages)
             if progress:

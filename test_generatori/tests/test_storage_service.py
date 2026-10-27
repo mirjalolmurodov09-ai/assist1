@@ -162,3 +162,13 @@ def test_old_database_is_migrated(tmp_path):
     assert row.name == "eski" and row.info_pdf_path == ""
     assert s.find_test(1, "T-OLD123") is None or True          # elementlari yo'q, lekin xato bermaydi
     assert s.all_test_ids() == {"T-OLD123"}
+
+
+def test_service_even_pages_default_and_switch(tmp_path, st):
+    from pypdf import PdfReader
+    bank = make_bank(60)
+    on = create_session(bank, n_students=4, q_per_test=40, out_dir=tmp_path / "a", storage=st, seed=1)
+    off = create_session(bank, n_students=4, q_per_test=40, out_dir=tmp_path / "b", storage=st, seed=1,
+                         even_pages=False)
+    assert on.pages % 2 == 0 and len(PdfReader(str(on.pdf_path)).pages) == on.pages
+    assert off.pages == len(PdfReader(str(off.pdf_path)).pages)

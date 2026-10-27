@@ -42,6 +42,7 @@ def create_session(
     seed: Optional[int] = None,
     shuffle_options: bool = True,
     students: Optional[list[Student]] = None,
+    even_pages: bool = True,
     source_file: str = "",
     stage: Optional[Callable[[str, int, int], None]] = None,
 ) -> SessionOutput:
@@ -77,7 +78,8 @@ def create_session(
 
     report("PDF yozilmoqda", 0, n_students)
     try:
-        pages = build_pdf(gen.tests, pdf_path, meta, progress=lambda d, t: report("PDF yozilmoqda", d, t))
+        pages = build_pdf(gen.tests, pdf_path, meta, progress=lambda d, t: report("PDF yozilmoqda", d, t),
+                         even_pages=even_pages)
         report("O'quvchi varaqlari yozilmoqda", 0, n_students)
         build_info_pdf(gen.tests, students, info_path, meta,
                        progress=lambda d, t: report("O'quvchi varaqlari yozilmoqda", d, t))

@@ -139,3 +139,82 @@ def test_big_id_only_on_first_page_and_continuation_has_no_header(tmp_path):
             assert "TEST ID" not in tx and "Uzun test" not in tx
             assert tx.count(tid) == 2          # chetdagi mayda ID + pastki kolontitul
             assert tx.lstrip().startswith(tid)  # sarlavha o'rniga faqat mayda ID, keyin savollar
+
+
+# ---------------------------------------------------------------- Juft sahifa
+def _pages_per_test(path, tests):
+    """Har bir test necha betga tushganini hisoblaydi (footer «ID, bet X / Y» orqali)."""
+    _, texts = text_of(path)
+    out = {}
+    for tx in texts:
+        tid = next(t.test_id for t in tests if t.test_id in tx)
+        m = re.search(r"bet (\d+) / (\d+)", tx)
+        out.setdefault(tid, []).append((int(m.group(1)), int(m.group(2))))
+    return out
+
+
+@pytest.mark.parametrize("q", [1, 3, 8, 16, 17, 20, 34, 35, 40, 51, 68, 69, 90, 119])
+def test_even_pages_for_all_sizes(tmp_path, q):
+    bank = make_bank(120)
+    res = generate_tests(bank, 3, q, seed=q)
+    out = tmp_path / "e.pdf"
+    pages = build_pdf(res.tests, out, PdfMeta("Juft"), even_pages=True)
+    per = _pages_per_test(out, res.tests)
+    assert pages % 2 == 0
+    for tid, lst in per.items():
+        total = lst[0][1]
+        assert total % 2 == 0 and len(lst) == total
+        assert [n for n, _ in lst] == list(range(1, total + 1))
+    _, texts = text_of(out)
+    flat = re.sub(r"\s+", " ", "\n".join(texts))
+    for t in res.tests:                                  # hech qaysi savol/variant yo'qolmagan
+        for it in t.items:
+            assert it.text in flat
+            for o in it.options:
+                assert o in flat
+
+
+def test_default_does_not_force_even(tmp_path):
+    res = generate_tests(make_bank(60), 1, 40, seed=1)
+    a = tmp_path / "a.pdf"
+    b = tmp_path / "b.pdf"
+    odd = build_pdf(res.tests, a)
+    even = build_pdf(res.tests, b, even_pages=True)
+    assert odd % 2 == 1 and even % 2 == 0
+
+
+def test_short_single_page_gets_blank_back_page(tmp_path):
+    res = generate_tests(make_bank(10), 2, 5, seed=1)
+    out = tmp_path / "s.pdf"
+    assert build_pdf(res.tests, out, even_pages=True) == 4
+    _, texts = text_of(out)
+    assert "bo'sh qoldirilgan" in texts[1] and "bo'sh qoldirilgan" in texts[3]
+
+
+def test_shrink_and_expand_strategies():
+    from pdf_builder import _TestLayout, _layout_for
+    bank = make_bank(150)
+    meta = PdfMeta("X")
+
+    def lay(q):
+        t = generate_tests(bank, 1, q, seed=1).tests[0]
+        return len(_TestLayout(t, meta).pages), _layout_for(t, meta, True)
+
+    n, l = lay(36)                      # 3 bet -> siqilib 2 bet
+    assert n == 3 and len(l.pages) == 2 and l.scale < 1
+    n, l = lay(45)                      # 3 bet -> kengaytirilib 4 bet
+    assert n == 3 and len(l.pages) == 4 and l.scale > 1
+    n, l = lay(72)                      # 5 bet -> siqilib 4 bet
+    assert n == 5 and len(l.pages) == 4 and l.scale < 1
+    n, l = lay(5)                       # 1 qisqa bet -> yoyib bo'lmaydi: bo'sh bet
+    assert n == 1 and len(l.pages) == 2 and l.scale == 1
+    n, l = lay(20)                      # allaqachon juft: o'zgarmaydi
+    assert n == 2 and len(l.pages) == 2 and l.scale == 1
+
+
+def test_even_mode_performance_reasonable(tmp_path):
+    import time
+    res = generate_tests(make_bank(100), 60, 20, seed=1)
+    t0 = time.time()
+    build_pdf(res.tests, tmp_path / "p.pdf", even_pages=True)
+    assert time.time() - t0 < 60

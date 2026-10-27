@@ -43,6 +43,10 @@ davom etish yoki to'xtatish mumkin. `+` belgisi PDF'ga umuman chiqmaydi.
    * `testlar_<vaqt>.pdf` — barcha o'quvchilar testi, har biri yangi sahifadan. **Faqat savollar**: F.I.Sh./Sinf/Sana
      qatori va doirachali javob varaqasi yo'q. Birinchi betda katta **TEST ID** qutisi va sarlavha; keyingi betlarda
      sarlavha yo'q, ID yuqori chetda mayda yoziladi (joy olmaydi), pastda «ID, bet X / Y».
+     **Juft sahifa** (katakcha yoqilgan bo'lsa, standart): har bir o'quvchi testi juft betdan iborat bo'ladi, shunda
+     ikki tomonlama chop etganda keyingi o'quvchi testi aralashib ketmaydi. Dastur toq betni avval shriftni biroz
+     kichraytirib (eng ko'pi ~20 %) bittaga kamaytiradi (3→2, 5→4), bo'lmasa kattalashtirib bittaga ko'paytiradi
+     (3→4); ikkalasi ham bo'lmasa oxiriga bo'sh bet qo'shadi. Savollar hech qachon yo'qolmaydi.
    * `oquvchilar_<vaqt>.pdf` — har bir o'quvchi uchun **alohida sahifa**: F.I.Sh., sinf, maktab va katta Test ID
      (ro'yxat berilmasa, qo'lda yozish uchun bo'sh chiziqlar). Hammasi bitta PDF da.
    * `javoblar_kaliti_<vaqt>.xlsx` — faqat o'qituvchi uchun.
@@ -98,4 +102,7 @@ bo'lmasa, uy papkasidagi `TestGeneratori` ga).
   ustunida esa B deb olinadi.
 * Shrift: DejaVu Sans (`fonts/`), lotin, kirill va o'zbek harflarini qamrab oladi; shriftda yo'q belgi `?` bilan almashtiriladi.
 * Ishlash tezligi: 1000 ta o'quvchi × 30 savol ≈ 3000 sahifa, taxminan 40 soniya, ~150 MB xotira.
+* Juft sahifa rejimida ayrim testlar shrifti boshqalarnikidan biroz farq qilishi mumkin (siqilgan yoki kattalashgan);
+  rejim o'chirilsa hamma testlar bir xil o'lchamda, lekin sahifalar soni toq bo'lishi mumkin. Rejim PDF yaratishni
+  taxminan 2–3 marta sekinlashtiradi (300 ta × 40 savol ≈ 23 soniya).
 * O'quvchi varag'i har bir o'quvchiga bitta to'liq sahifa (bir sahifada bir nechta karta emas).
