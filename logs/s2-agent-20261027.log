@@ -1,0 +1,22 @@
+2026-10-27 12:10:29.065Z [INF] SettingsService: Device ID created.
+2026-10-27 12:10:29.154Z [INF] AgentService: Agent Started
+2026-10-27 12:10:29.204Z [INF] DiscoveryService: Discovery Started
+2026-10-27 12:10:29.246Z [INF] Lifetime: Application started. Press Ctrl+C to shut down.
+2026-10-27 12:10:29.257Z [INF] Lifetime: Hosting environment: Production
+2026-10-27 12:10:29.257Z [INF] Lifetime: Content root path: D:\a\assist1\assist1\publish\student\
+2026-10-27 12:10:29.311Z [INF] DiscoveryService: Teacher Found at 127.0.0.1:39701
+2026-10-27 12:10:29.316Z [INF] ConnectionService: Connection Started to 127.0.0.1:39701
+2026-10-27 12:10:29.400Z [INF] AuthenticationService: Authentication Started
+2026-10-27 12:10:29.471Z [INF] AuthenticationService: Authentication Success (registration Pending)
+2026-10-27 12:10:29.471Z [INF] AuthenticationService: Registration Request sent to Teacher
+2026-10-27 12:10:29.473Z [INF] AgentService: Waiting for Teacher approval.
+2026-10-27 12:10:29.701Z [INF] AgentService: Registration Approved
+2026-10-27 12:10:29.856Z [INF] ScreenStreamService: Screen stream started (3 fps, q50, 480px).
+2026-10-27 12:10:30.164Z [INF] ScreenStreamService: Screen stream stopped.
+2026-10-27 12:10:30.165Z [INF] ScreenStreamService: Screen stream started (3 fps, q50, 480px).
+2026-10-27 12:10:33.462Z [INF] TeacherScreenService: Teacher screen is shown.
+2026-10-27 12:10:36.215Z [INF] TeacherScreenService: Teacher screen closed.
+2026-10-27 12:10:37.913Z [INF] FileTransferService: File Receiving: ci-transfer.bin (700000 bytes) Completed (null)
+2026-10-27 12:10:48.144Z [INF] ScreenStreamService: Screen stream stopped.
+2026-10-27 12:10:48.146Z [WRN] AgentService: Connection Lost (ConnectionLost).
+2026-10-27 12:10:48.149Z [INF] AgentService: Reconnect Started (attempt 1, in 1s)
